@@ -154,7 +154,7 @@ export default function App() {
       <footer className="bg-white mt-16 py-8 border-t">
         <div className="max-w-7xl mx-auto px-4 text-center text-gray-600">
           <p>Todos nuestros productos son de la más alta calidad</p>
-          <p className="mt-2">Envíos a todo el país • Pago seguro • Garantía de calidad</p>
+          <p className="mt-2">Garantía de calidad</p>
         </div>
       </footer>
     </div>
