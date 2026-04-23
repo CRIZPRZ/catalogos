@@ -186,13 +186,13 @@ export function AdminPanel({ products, categories, onUpdateProducts, onUpdateCat
           <div className="flex border-b">
             <button
               onClick={() => setActiveTab('products')}
-              className={`px-6 py-3 ${activeTab === 'products' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-600'}`}
+              className={`flex-1 sm:flex-none px-4 sm:px-6 py-3 text-sm sm:text-base ${activeTab === 'products' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-600'}`}
             >
               Productos
             </button>
             <button
               onClick={() => setActiveTab('categories')}
-              className={`px-6 py-3 ${activeTab === 'categories' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-600'}`}
+              className={`flex-1 sm:flex-none px-4 sm:px-6 py-3 text-sm sm:text-base ${activeTab === 'categories' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-600'}`}
             >
               Categorías
             </button>
@@ -205,29 +205,30 @@ export function AdminPanel({ products, categories, onUpdateProducts, onUpdateCat
                   <h3>Gestión de Productos ({products.length})</h3>
                   <button
                     onClick={() => { setExistingImages([]); setNewFiles([]); setShowProductForm(true); }}
-                    className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+                    className="flex items-center gap-2 bg-blue-600 text-white px-3 sm:px-4 py-2 rounded-lg hover:bg-blue-700 text-sm sm:text-base"
                   >
-                    <Plus size={20} />
-                    Nuevo Producto
+                    <Plus size={18} />
+                    <span className="hidden sm:inline">Nuevo Producto</span>
+                    <span className="sm:hidden">Nuevo</span>
                   </button>
                 </div>
 
                 {showProductForm && (
-                  <div className="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4">
-                    <div className="bg-white rounded-xl w-full max-w-3xl max-h-[90vh] flex flex-col shadow-2xl">
+                  <div className="fixed inset-0 bg-black/50 z-[60] flex items-end sm:items-center justify-center p-0 sm:p-4">
+                    <div className="bg-white rounded-t-xl sm:rounded-xl w-full max-w-3xl max-h-[95vh] sm:max-h-[90vh] flex flex-col shadow-2xl">
 
                       {/* Header */}
-                      <div className="flex items-center justify-between px-6 py-4 border-b flex-shrink-0">
+                      <div className="flex items-center justify-between px-4 sm:px-6 py-4 border-b flex-shrink-0">
                         <h3 className="font-semibold text-gray-800">{editingProduct ? 'Editar Producto' : 'Nuevo Producto'}</h3>
                         <button onClick={resetForm} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
                       </div>
 
                       {/* Scrollable body */}
-                      <div className="overflow-y-auto flex-1 p-6 space-y-4">
+                      <div className="overflow-y-auto flex-1 p-4 sm:p-6 space-y-4">
 
                         {/* Nombre + Categoría */}
-                        <div className="grid grid-cols-3 gap-3">
-                          <div className="col-span-2">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                          <div className="sm:col-span-2">
                             <label className="block text-xs text-gray-500 mb-1">Nombre *</label>
                             <input type="text" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} className="w-full px-3 py-2 border rounded-lg text-sm" />
                           </div>
@@ -241,7 +242,7 @@ export function AdminPanel({ products, categories, onUpdateProducts, onUpdateCat
                         </div>
 
                         {/* Precio + Porciones + Rating + Stock */}
-                        <div className="grid grid-cols-4 gap-3">
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                           <div>
                             <label className="block text-xs text-gray-500 mb-1">Precio *</label>
                             <input type="number" step="0.01" value={formData.price} onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) })} className="w-full px-3 py-2 border rounded-lg text-sm" />
@@ -292,7 +293,7 @@ export function AdminPanel({ products, categories, onUpdateProducts, onUpdateCat
                         </div>
 
                         {/* Descripciones lado a lado */}
-                        <div className="grid grid-cols-2 gap-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                           <div>
                             <label className="block text-xs text-gray-500 mb-1">Descripción Corta</label>
                             <textarea value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} className="w-full px-3 py-2 border rounded-lg text-sm" rows={2} />
@@ -304,7 +305,7 @@ export function AdminPanel({ products, categories, onUpdateProducts, onUpdateCat
                         </div>
 
                         {/* Modo de uso + Ingredientes lado a lado */}
-                        <div className="grid grid-cols-2 gap-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                           <div>
                             <label className="block text-xs text-gray-500 mb-1">Modo de Uso</label>
                             <textarea value={formData.howToUse} onChange={(e) => setFormData({ ...formData, howToUse: e.target.value })} className="w-full px-3 py-2 border rounded-lg text-sm" rows={2} />
@@ -316,7 +317,7 @@ export function AdminPanel({ products, categories, onUpdateProducts, onUpdateCat
                         </div>
 
                         {/* Beneficios + Sabores lado a lado */}
-                        <div className="grid grid-cols-2 gap-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                           <div>
                             <label className="block text-xs text-gray-500 mb-1">Beneficios</label>
                             <div className="flex gap-1.5 mb-2">
@@ -352,12 +353,12 @@ export function AdminPanel({ products, categories, onUpdateProducts, onUpdateCat
                       </div>
 
                       {/* Footer */}
-                      <div className="flex gap-3 px-6 py-4 border-t flex-shrink-0 bg-gray-50 rounded-b-xl">
-                        <button onClick={handleSaveProduct} disabled={uploading} className="flex items-center gap-2 bg-green-600 text-white px-5 py-2 rounded-lg hover:bg-green-700 disabled:opacity-60 text-sm">
+                      <div className="flex gap-3 px-4 sm:px-6 py-4 border-t flex-shrink-0 bg-gray-50 rounded-b-xl">
+                        <button onClick={handleSaveProduct} disabled={uploading} className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-green-600 text-white px-5 py-2.5 rounded-lg hover:bg-green-700 disabled:opacity-60 text-sm">
                           <Save size={16} />
                           {uploading ? 'Subiendo...' : 'Guardar'}
                         </button>
-                        <button onClick={resetForm} className="bg-gray-200 text-gray-700 px-5 py-2 rounded-lg hover:bg-gray-300 text-sm">
+                        <button onClick={resetForm} className="flex-1 sm:flex-none bg-gray-200 text-gray-700 px-5 py-2.5 rounded-lg hover:bg-gray-300 text-sm text-center">
                           Cancelar
                         </button>
                       </div>
@@ -392,18 +393,18 @@ export function AdminPanel({ products, categories, onUpdateProducts, onUpdateCat
             {activeTab === 'categories' && (
               <div>
                 <h3 className="mb-6">Gestión de Categorías</h3>
-                <div className="bg-gray-50 p-6 rounded-lg mb-6">
+                <div className="bg-gray-50 p-4 sm:p-6 rounded-lg mb-6">
                   <label className="block text-sm mb-2">Nueva Categoría</label>
-                  <div className="flex gap-2">
+                  <div className="flex flex-col sm:flex-row gap-2">
                     <input
                       type="text"
                       value={newCategory}
                       onChange={(e) => setNewCategory(e.target.value)}
                       onKeyPress={(e) => e.key === 'Enter' && handleAddCategory()}
-                      className="flex-1 px-3 py-2 border rounded-lg"
+                      className="flex-1 px-3 py-2 border rounded-lg text-sm"
                       placeholder="Nombre de la categoría..."
                     />
-                    <button onClick={handleAddCategory} className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700">
+                    <button onClick={handleAddCategory} className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 text-sm">
                       Agregar
                     </button>
                   </div>
