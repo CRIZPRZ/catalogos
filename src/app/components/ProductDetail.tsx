@@ -45,11 +45,39 @@ export function ProductDetail({ product, onClose }: ProductDetailProps) {
     window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${msg}`, '_blank');
   };
 
+  const PriceCTA = () => (
+    <>
+      <div className="flex items-center justify-between mb-3">
+        <div>
+          <p className="text-xs text-gray-500">Precio</p>
+          <p className="text-2xl font-bold text-gray-900">${product.price.toFixed(2)}</p>
+        </div>
+        <span className={`text-sm font-medium px-3 py-1 rounded-full ${product.inStock ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'}`}>
+          {product.inStock ? 'En Stock' : 'Agotado'}
+        </span>
+      </div>
+      <button
+        onClick={handleWhatsApp}
+        disabled={!product.inStock}
+        className={`w-full flex items-center justify-center gap-2 px-6 py-3 rounded-lg transition-colors font-medium ${
+          product.inStock
+            ? 'bg-green-500 text-white hover:bg-green-600'
+            : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+        }`}
+      >
+        <WhatsAppIcon />
+        {product.inStock ? 'Pedir por WhatsApp' : 'Producto Agotado'}
+      </button>
+    </>
+  );
+
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 overflow-y-auto py-8 px-4">
-      <div className="bg-white rounded-xl max-w-4xl mx-auto shadow-2xl">
+    /* Mobile: flex-col fullscreen. Desktop: block scrollable overlay */
+    <div className="fixed inset-0 bg-black/50 z-50 flex flex-col md:block md:overflow-y-auto md:py-8 md:px-4">
+      <div className="bg-white flex flex-col flex-1 min-h-0 md:block md:rounded-xl md:max-w-4xl md:mx-auto md:shadow-2xl">
+
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b sticky top-0 bg-white rounded-t-xl z-10">
+        <div className="flex items-center justify-between p-4 md:p-6 border-b flex-shrink-0 bg-white rounded-t-xl sticky top-0 z-10">
           <span className="text-sm text-blue-600 font-medium uppercase tracking-wide">
             {product.category}
           </span>
@@ -58,170 +86,159 @@ export function ProductDetail({ product, onClose }: ProductDetailProps) {
           </button>
         </div>
 
-        {/* Content */}
-        <div className="grid md:grid-cols-2 gap-4 md:gap-8 p-4 md:p-6">
-          {/* Image / Carousel Section */}
-          <div className="space-y-3">
-            {/* Main image */}
-            <div className="relative h-56 sm:h-80 md:h-96 bg-gray-100 rounded-lg overflow-hidden">
-              <ImageWithFallback
-                src={allImages[activeIndex] ?? ''}
-                alt={product.name}
-                className="w-full h-full object-cover"
-              />
-              {!product.inStock && (
-                <div className="absolute top-4 right-4 bg-red-500 text-white px-3 py-1 rounded-full text-sm">
-                  Agotado
-                </div>
-              )}
-              {allImages.length > 1 && (
-                <>
-                  <button
-                    onClick={prev}
-                    className="absolute left-2 top-1/2 -translate-y-1/2 bg-white bg-opacity-80 hover:bg-opacity-100 rounded-full p-1 shadow transition-all"
-                  >
-                    <ChevronLeft size={20} className="text-gray-700" />
-                  </button>
-                  <button
-                    onClick={next}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 bg-white bg-opacity-80 hover:bg-opacity-100 rounded-full p-1 shadow transition-all"
-                  >
-                    <ChevronRight size={20} className="text-gray-700" />
-                  </button>
-                </>
-              )}
-            </div>
+        {/* Scrollable body (mobile) / normal flow (desktop) */}
+        <div className="flex-1 min-h-0 overflow-y-auto md:overflow-visible">
+          <div className="grid md:grid-cols-2 gap-4 md:gap-8 p-4 md:p-6">
 
-            {/* Thumbnails */}
-            {allImages.length > 1 && (
-              <div className="flex gap-2 overflow-x-auto pb-1">
-                {allImages.map((img, i) => (
-                  <button
-                    key={i}
-                    onClick={() => setActiveIndex(i)}
-                    className={`flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-all ${
-                      i === activeIndex ? 'border-blue-500 opacity-100' : 'border-transparent opacity-60 hover:opacity-90'
-                    }`}
-                  >
-                    <img src={img} alt="" className="w-full h-full object-cover" />
-                  </button>
-                ))}
-              </div>
-            )}
-
-            {/* Trust Badges */}
-            <div className="grid grid-cols-2 gap-4 pt-2">
-              <div className="flex flex-col items-center text-center">
-                <ShieldCheck className="text-green-600 mb-2" size={24} />
-                <span className="text-xs text-gray-600">Producto Certificado</span>
-              </div>
-              <div className="flex flex-col items-center text-center">
-                <Package className="text-purple-600 mb-2" size={24} />
-                <span className="text-xs text-gray-600">{product.servings || 30} Porciones</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Details Section */}
-          <div className="flex flex-col min-h-0">
-            {/* Scrollable content */}
-            <div className="overflow-y-auto flex-1 max-h-[280px] sm:max-h-[360px] md:max-h-[400px] space-y-4 md:space-y-6 pr-1 mb-4">
-              <div>
-                <h2 className="mb-2">{product.name}</h2>
-                <div className="flex items-center gap-2 mb-4">
-                  <div className="flex items-center">
-                    {[...Array(5)].map((_, i) => (
-                      <Star
-                        key={i}
-                        size={16}
-                        className={i < (product.rating || 4) ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}
-                      />
-                    ))}
-                  </div>
-                  <span className="text-sm text-gray-600">({product.rating || 4.5}/5)</span>
-                </div>
-                <p className="text-gray-600">{product.description}</p>
-              </div>
-
-              <div className="space-y-4">
-                <div>
-                  <h3 className="mb-2">Descripción Detallada</h3>
-                  <p className="text-gray-600 text-sm leading-relaxed">
-                    {product.detailedDescription ||
-                      'Este suplemento de alta calidad ha sido formulado con ingredientes premium para proporcionarte los mejores resultados.'}
-                  </p>
-                </div>
-
-                {product.benefits && product.benefits.length > 0 && (
-                  <div>
-                    <h3 className="mb-2">Beneficios</h3>
-                    <ul className="space-y-2">
-                      {product.benefits.map((benefit, index) => (
-                        <li key={index} className="flex items-start gap-2 text-sm text-gray-600">
-                          <span className="text-green-600 mt-0.5">✓</span>
-                          {benefit}
-                        </li>
-                      ))}
-                    </ul>
+            {/* Image / Carousel Section */}
+            <div className="space-y-3">
+              <div className="relative h-56 sm:h-72 md:h-96 bg-gray-100 rounded-lg overflow-hidden">
+                <ImageWithFallback
+                  src={allImages[activeIndex] ?? ''}
+                  alt={product.name}
+                  className="w-full h-full object-cover"
+                />
+                {!product.inStock && (
+                  <div className="absolute top-4 right-4 bg-red-500 text-white px-3 py-1 rounded-full text-sm">
+                    Agotado
                   </div>
                 )}
+                {allImages.length > 1 && (
+                  <>
+                    <button
+                      onClick={prev}
+                      className="absolute left-2 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white rounded-full p-1 shadow transition-all"
+                    >
+                      <ChevronLeft size={20} className="text-gray-700" />
+                    </button>
+                    <button
+                      onClick={next}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white rounded-full p-1 shadow transition-all"
+                    >
+                      <ChevronRight size={20} className="text-gray-700" />
+                    </button>
+                  </>
+                )}
+              </div>
 
-                {product.flavors && product.flavors.length > 0 && (
-                  <div>
-                    <h3 className="mb-3">Sabores disponibles</h3>
-                    <div className="flex flex-wrap gap-2">
-                      {product.flavors.map((flavor, index) => (
-                        <span
-                          key={index}
-                          className="px-3 py-1.5 rounded-full text-sm font-medium bg-gradient-to-r from-purple-100 to-pink-100 text-purple-800 border border-purple-200"
-                        >
-                          {flavor}
-                        </span>
+              {allImages.length > 1 && (
+                <div className="flex gap-2 overflow-x-auto pb-1">
+                  {allImages.map((img, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setActiveIndex(i)}
+                      className={`flex-shrink-0 w-14 h-14 rounded-lg overflow-hidden border-2 transition-all ${
+                        i === activeIndex ? 'border-blue-500 opacity-100' : 'border-transparent opacity-60 hover:opacity-90'
+                      }`}
+                    >
+                      <img src={img} alt="" className="w-full h-full object-cover" />
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              <div className="grid grid-cols-2 gap-4 pt-2">
+                <div className="flex flex-col items-center text-center">
+                  <ShieldCheck className="text-green-600 mb-1" size={22} />
+                  <span className="text-xs text-gray-600">Producto Certificado</span>
+                </div>
+                <div className="flex flex-col items-center text-center">
+                  <Package className="text-purple-600 mb-1" size={22} />
+                  <span className="text-xs text-gray-600">{product.servings || 30} Porciones</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Details Section */}
+            <div className="flex flex-col min-h-0">
+              {/* Scrollable text on desktop */}
+              <div className="space-y-4 md:space-y-6 md:overflow-y-auto md:flex-1 md:max-h-[400px] pr-1 mb-4">
+                <div>
+                  <h2 className="mb-2">{product.name}</h2>
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="flex items-center">
+                      {[...Array(5)].map((_, i) => (
+                        <Star
+                          key={i}
+                          size={16}
+                          className={i < (product.rating || 4) ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}
+                        />
                       ))}
                     </div>
+                    <span className="text-sm text-gray-600">({product.rating || 4.5}/5)</span>
                   </div>
-                )}
-
-              {product.howToUse && (
-                  <div>
-                    <h3 className="mb-2">Modo de Uso</h3>
-                    <p className="text-gray-600 text-sm">{product.howToUse}</p>
-                  </div>
-                )}
-
-                {product.ingredients && (
-                  <div>
-                    <h3 className="mb-2">Ingredientes</h3>
-                    <p className="text-gray-600 text-sm">{product.ingredients}</p>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Price and WhatsApp — always visible */}
-            <div className="pt-4 border-t">
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <p className="text-sm text-gray-600">Precio</p>
-                  <p className="text-gray-900">${product.price.toFixed(2)}</p>
+                  <p className="text-gray-600 text-sm">{product.description}</p>
                 </div>
-                {product.inStock && <span className="text-green-600 text-sm">En Stock</span>}
+
+                <div className="space-y-4">
+                  <div>
+                    <h3 className="mb-2">Descripción Detallada</h3>
+                    <p className="text-gray-600 text-sm leading-relaxed">
+                      {product.detailedDescription ||
+                        'Este suplemento de alta calidad ha sido formulado con ingredientes premium para proporcionarte los mejores resultados.'}
+                    </p>
+                  </div>
+
+                  {product.benefits && product.benefits.length > 0 && (
+                    <div>
+                      <h3 className="mb-2">Beneficios</h3>
+                      <ul className="space-y-2">
+                        {product.benefits.map((benefit, index) => (
+                          <li key={index} className="flex items-start gap-2 text-sm text-gray-600">
+                            <span className="text-green-600 mt-0.5">✓</span>
+                            {benefit}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {product.flavors && product.flavors.length > 0 && (
+                    <div>
+                      <h3 className="mb-3">Sabores disponibles</h3>
+                      <div className="flex flex-wrap gap-2">
+                        {product.flavors.map((flavor, index) => (
+                          <span
+                            key={index}
+                            className="px-3 py-1.5 rounded-full text-sm font-medium bg-gradient-to-r from-purple-100 to-pink-100 text-purple-800 border border-purple-200"
+                          >
+                            {flavor}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {product.howToUse && (
+                    <div>
+                      <h3 className="mb-2">Modo de Uso</h3>
+                      <p className="text-gray-600 text-sm">{product.howToUse}</p>
+                    </div>
+                  )}
+
+                  {product.ingredients && (
+                    <div>
+                      <h3 className="mb-2">Ingredientes</h3>
+                      <p className="text-gray-600 text-sm">{product.ingredients}</p>
+                    </div>
+                  )}
+                </div>
               </div>
-              <button
-                onClick={handleWhatsApp}
-                disabled={!product.inStock}
-                className={`w-full flex items-center justify-center gap-2 px-6 py-3 rounded-lg transition-colors ${
-                  product.inStock
-                    ? 'bg-green-500 text-white hover:bg-green-600'
-                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                }`}
-              >
-                <WhatsAppIcon />
-                {product.inStock ? 'Pedir por WhatsApp' : 'Producto Agotado'}
-              </button>
+
+              {/* Price/CTA — desktop only (stays at bottom of right column) */}
+              <div className="hidden md:block pt-4 border-t">
+                <PriceCTA />
+              </div>
             </div>
+
           </div>
         </div>
+
+        {/* Price/CTA — mobile only, always pinned at bottom */}
+        <div className="md:hidden flex-shrink-0 px-4 py-3 border-t bg-white">
+          <PriceCTA />
+        </div>
+
       </div>
     </div>
   );
