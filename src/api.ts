@@ -21,7 +21,8 @@ export interface Product {
 function fromDB(row: Record<string, unknown>): Product {
   const dbImages = (row.images as string[]) ?? [];
   const firstImage = (row.image as string) ?? '';
-  const images = dbImages.length ? dbImages : (firstImage ? [firstImage] : []);
+  const raw = dbImages.length ? dbImages : (firstImage ? [firstImage] : []);
+  const images = [...new Set(raw.filter(Boolean))];
   return {
     id: row.id as number,
     name: row.name as string,
@@ -42,7 +43,8 @@ function fromDB(row: Record<string, unknown>): Product {
 }
 
 function toDB(p: Omit<Product, 'id'>) {
-  const images = p.images?.length ? p.images : (p.image ? [p.image] : []);
+  const raw = p.images?.length ? p.images : (p.image ? [p.image] : []);
+  const images = [...new Set(raw.filter(Boolean))];
   return {
     name: p.name,
     category: p.category,

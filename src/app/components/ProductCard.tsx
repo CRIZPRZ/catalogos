@@ -30,8 +30,8 @@ export function ProductCard({ name, category, price, image, description, inStock
       onClick={onClick}
       className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-shadow duration-300 cursor-pointer"
     >
-      <div className="relative h-64 bg-gray-100">
-        <ImageWithFallback src={image} alt={name} className="w-full h-full object-cover" />
+      <div className="relative h-64 bg-white border-b border-gray-100">
+        <ImageWithFallback src={image} alt={name} className="w-full h-full object-contain p-2" />
         {!inStock && (
           <div className="absolute top-4 right-4 bg-red-500 text-white px-3 py-1 rounded-full text-sm">
             Agotado

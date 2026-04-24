@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X, Star, Package, ShieldCheck, ChevronLeft, ChevronRight } from 'lucide-react';
+import { X, Star, Package, ShieldCheck, ChevronLeft, ChevronRight, ZoomIn } from 'lucide-react';
 import { ImageWithFallback } from './figma/ImageWithFallback';
 
 const WhatsAppIcon = () => (
@@ -31,9 +31,91 @@ interface ProductDetailProps {
   onClose: () => void;
 }
 
+function ImageZoomModal({
+  images,
+  startIndex,
+  onClose,
+}: {
+  images: string[];
+  startIndex: number;
+  onClose: () => void;
+}) {
+  const [index, setIndex] = useState(startIndex);
+  const prev = () => setIndex(i => (i - 1 + images.length) % images.length);
+  const next = () => setIndex(i => (i + 1) % images.length);
+
+  return (
+    <div
+      className="fixed inset-0 z-[100] bg-black flex flex-col"
+      onClick={onClose}
+    >
+      {/* top bar */}
+      <div className="flex items-center justify-between px-4 py-3 flex-shrink-0" onClick={e => e.stopPropagation()}>
+        <span className="text-white text-sm">
+          {images.length > 1 ? `${index + 1} / ${images.length}` : ''}
+        </span>
+        <button onClick={onClose} className="text-white hover:text-gray-300 transition-colors">
+          <X size={28} />
+        </button>
+      </div>
+
+      {/* image */}
+      <div
+        className="flex-1 flex items-center justify-center relative min-h-0"
+        onClick={e => e.stopPropagation()}
+      >
+        <img
+          src={images[index]}
+          alt=""
+          className="max-w-full max-h-full object-contain select-none"
+          draggable={false}
+        />
+
+        {images.length > 1 && (
+          <>
+            <button
+              onClick={prev}
+              className="absolute left-2 top-1/2 -translate-y-1/2 bg-white/20 hover:bg-white/40 rounded-full p-2 transition-all"
+            >
+              <ChevronLeft size={28} className="text-white" />
+            </button>
+            <button
+              onClick={next}
+              className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/20 hover:bg-white/40 rounded-full p-2 transition-all"
+            >
+              <ChevronRight size={28} className="text-white" />
+            </button>
+          </>
+        )}
+      </div>
+
+      {/* thumbnails */}
+      {images.length > 1 && (
+        <div
+          className="flex gap-2 justify-center px-4 py-3 flex-shrink-0 overflow-x-auto"
+          onClick={e => e.stopPropagation()}
+        >
+          {images.map((img, i) => (
+            <button
+              key={i}
+              onClick={() => setIndex(i)}
+              className={`flex-shrink-0 w-12 h-12 rounded overflow-hidden border-2 transition-all ${
+                i === index ? 'border-white opacity-100' : 'border-transparent opacity-50 hover:opacity-80'
+              }`}
+            >
+              <img src={img} alt="" className="w-full h-full object-contain bg-white" />
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function ProductDetail({ product, onClose }: ProductDetailProps) {
   const allImages = product.images?.length ? product.images : (product.image ? [product.image] : []);
   const [activeIndex, setActiveIndex] = useState(0);
+  const [zoomOpen, setZoomOpen] = useState(false);
 
   const prev = () => setActiveIndex(i => (i - 1 + allImages.length) % allImages.length);
   const next = () => setActiveIndex(i => (i + 1) % allImages.length);
@@ -72,174 +154,203 @@ export function ProductDetail({ product, onClose }: ProductDetailProps) {
   );
 
   return (
-    /* Mobile: flex-col fullscreen. Desktop: block scrollable overlay */
-    <div className="fixed inset-0 bg-black/50 z-50 flex flex-col md:block md:overflow-y-auto md:py-8 md:px-4">
-      <div className="bg-white flex flex-col flex-1 min-h-0 md:block md:rounded-xl md:max-w-4xl md:mx-auto md:shadow-2xl">
+    <>
+      {zoomOpen && (
+        <ImageZoomModal
+          images={allImages}
+          startIndex={activeIndex}
+          onClose={() => setZoomOpen(false)}
+        />
+      )}
 
-        {/* Header */}
-        <div className="flex items-center justify-between p-4 md:p-6 border-b flex-shrink-0 bg-white rounded-t-xl sticky top-0 z-10">
-          <span className="text-sm text-blue-600 font-medium uppercase tracking-wide">
-            {product.category}
-          </span>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors">
-            <X size={24} />
-          </button>
-        </div>
+      <div className="fixed inset-0 bg-black/50 z-50 flex flex-col md:block md:overflow-y-auto md:py-8 md:px-4">
+        <div className="bg-white flex flex-col flex-1 min-h-0 md:block md:rounded-xl md:max-w-4xl md:mx-auto md:shadow-2xl">
 
-        {/* Scrollable body (mobile) / normal flow (desktop) */}
-        <div className="flex-1 min-h-0 overflow-y-auto md:overflow-visible">
-          <div className="grid md:grid-cols-2 gap-4 md:gap-8 p-4 md:p-6">
+          {/* Header */}
+          <div className="flex items-center justify-between p-4 md:p-6 border-b flex-shrink-0 bg-white rounded-t-xl sticky top-0 z-10">
+            <span className="text-sm text-blue-600 font-medium uppercase tracking-wide">
+              {product.category}
+            </span>
+            <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors">
+              <X size={24} />
+            </button>
+          </div>
 
-            {/* Image / Carousel Section */}
-            <div className="space-y-3">
-              <div className="relative h-56 sm:h-72 md:h-96 bg-gray-100 rounded-lg overflow-hidden">
-                <ImageWithFallback
-                  src={allImages[activeIndex] ?? ''}
-                  alt={product.name}
-                  className="w-full h-full object-cover"
-                />
-                {!product.inStock && (
-                  <div className="absolute top-4 right-4 bg-red-500 text-white px-3 py-1 rounded-full text-sm">
-                    Agotado
-                  </div>
-                )}
-                {allImages.length > 1 && (
-                  <>
-                    <button
-                      onClick={prev}
-                      className="absolute left-2 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white rounded-full p-1 shadow transition-all"
-                    >
-                      <ChevronLeft size={20} className="text-gray-700" />
-                    </button>
-                    <button
-                      onClick={next}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white rounded-full p-1 shadow transition-all"
-                    >
-                      <ChevronRight size={20} className="text-gray-700" />
-                    </button>
-                  </>
-                )}
-              </div>
+          {/* Scrollable body (mobile) / normal flow (desktop) */}
+          <div className="flex-1 min-h-0 overflow-y-auto md:overflow-visible">
+            <div className="grid md:grid-cols-2 gap-4 md:gap-8 p-4 md:p-6">
 
-              {allImages.length > 1 && (
-                <div className="flex gap-2 overflow-x-auto pb-1">
-                  {allImages.map((img, i) => (
-                    <button
-                      key={i}
-                      onClick={() => setActiveIndex(i)}
-                      className={`flex-shrink-0 w-14 h-14 rounded-lg overflow-hidden border-2 transition-all ${
-                        i === activeIndex ? 'border-blue-500 opacity-100' : 'border-transparent opacity-60 hover:opacity-90'
-                      }`}
-                    >
-                      <img src={img} alt="" className="w-full h-full object-cover" />
-                    </button>
-                  ))}
-                </div>
-              )}
+              {/* Image / Carousel Section */}
+              <div className="space-y-3">
+                <div
+                  className="relative h-56 sm:h-72 md:h-96 bg-white border border-gray-100 rounded-lg overflow-hidden cursor-zoom-in group"
+                  onClick={() => setZoomOpen(true)}
+                >
+                  <ImageWithFallback
+                    src={allImages[activeIndex] ?? ''}
+                    alt={product.name}
+                    className="w-full h-full object-contain p-2"
+                  />
 
-              <div className="grid grid-cols-2 gap-4 pt-2">
-                <div className="flex flex-col items-center text-center">
-                  <ShieldCheck className="text-green-600 mb-1" size={22} />
-                  <span className="text-xs text-gray-600">Producto Certificado</span>
-                </div>
-                <div className="flex flex-col items-center text-center">
-                  <Package className="text-purple-600 mb-1" size={22} />
-                  <span className="text-xs text-gray-600">{product.servings || 30} Porciones</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Details Section */}
-            <div className="flex flex-col min-h-0">
-              {/* Scrollable text on desktop */}
-              <div className="space-y-4 md:space-y-6 md:overflow-y-auto md:flex-1 md:max-h-[400px] pr-1 mb-4">
-                <div>
-                  <h2 className="mb-2">{product.name}</h2>
-                  <div className="flex items-center gap-2 mb-3">
-                    <div className="flex items-center">
-                      {[...Array(5)].map((_, i) => (
-                        <Star
-                          key={i}
-                          size={16}
-                          className={i < (product.rating || 4) ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}
-                        />
-                      ))}
+                  {/* zoom hint overlay */}
+                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/10">
+                    <div className="bg-white/90 rounded-full p-2 shadow-md">
+                      <ZoomIn size={22} className="text-gray-700" />
                     </div>
-                    <span className="text-sm text-gray-600">({product.rating || 4.5}/5)</span>
-                  </div>
-                  <p className="text-gray-600 text-sm">{product.description}</p>
-                </div>
-
-                <div className="space-y-4">
-                  <div>
-                    <h3 className="mb-2">Descripción Detallada</h3>
-                    <p className="text-gray-600 text-sm leading-relaxed">
-                      {product.detailedDescription ||
-                        'Este suplemento de alta calidad ha sido formulado con ingredientes premium para proporcionarte los mejores resultados.'}
-                    </p>
                   </div>
 
-                  {product.benefits && product.benefits.length > 0 && (
-                    <div>
-                      <h3 className="mb-2">Beneficios</h3>
-                      <ul className="space-y-2">
-                        {product.benefits.map((benefit, index) => (
-                          <li key={index} className="flex items-start gap-2 text-sm text-gray-600">
-                            <span className="text-green-600 mt-0.5">✓</span>
-                            {benefit}
-                          </li>
-                        ))}
-                      </ul>
+                  {!product.inStock && (
+                    <div className="absolute top-4 right-4 bg-red-500 text-white px-3 py-1 rounded-full text-sm">
+                      Agotado
                     </div>
                   )}
 
-                  {product.flavors && product.flavors.length > 0 && (
-                    <div>
-                      <h3 className="mb-3">Sabores disponibles</h3>
-                      <div className="flex flex-wrap gap-2">
-                        {product.flavors.map((flavor, index) => (
-                          <span
-                            key={index}
-                            className="px-3 py-1.5 rounded-full text-sm font-medium bg-gradient-to-r from-purple-100 to-pink-100 text-purple-800 border border-purple-200"
-                          >
-                            {flavor}
-                          </span>
+                  {allImages.length > 1 && (
+                    <>
+                      <button
+                        onClick={e => { e.stopPropagation(); prev(); }}
+                        className="absolute left-2 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white rounded-full p-1 shadow transition-all"
+                      >
+                        <ChevronLeft size={20} className="text-gray-700" />
+                      </button>
+                      <button
+                        onClick={e => { e.stopPropagation(); next(); }}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white rounded-full p-1 shadow transition-all"
+                      >
+                        <ChevronRight size={20} className="text-gray-700" />
+                      </button>
+                    </>
+                  )}
+                </div>
+
+                {/* zoom button (visible on touch devices where hover doesn't work) */}
+                <button
+                  onClick={() => setZoomOpen(true)}
+                  className="flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-800 transition-colors md:hidden"
+                >
+                  <ZoomIn size={14} />
+                  Ver imagen ampliada
+                </button>
+
+                {allImages.length > 1 && (
+                  <div className="flex gap-2 overflow-x-auto pb-1">
+                    {allImages.map((img, i) => (
+                      <button
+                        key={i}
+                        onClick={() => setActiveIndex(i)}
+                        className={`flex-shrink-0 w-14 h-14 rounded-lg overflow-hidden border-2 transition-all ${
+                          i === activeIndex ? 'border-blue-500 opacity-100' : 'border-transparent opacity-60 hover:opacity-90'
+                        }`}
+                      >
+                        <img src={img} alt="" className="w-full h-full object-contain bg-white" />
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                <div className="grid grid-cols-2 gap-4 pt-2">
+                  <div className="flex flex-col items-center text-center">
+                    <ShieldCheck className="text-green-600 mb-1" size={22} />
+                    <span className="text-xs text-gray-600">Producto Certificado</span>
+                  </div>
+                  <div className="flex flex-col items-center text-center">
+                    <Package className="text-purple-600 mb-1" size={22} />
+                    <span className="text-xs text-gray-600">{product.servings || 30} Porciones</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Details Section */}
+              <div className="flex flex-col min-h-0">
+                <div className="space-y-4 md:space-y-6 md:overflow-y-auto md:flex-1 md:max-h-[400px] pr-1 mb-4">
+                  <div>
+                    <h2 className="mb-2">{product.name}</h2>
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className="flex items-center">
+                        {[...Array(5)].map((_, i) => (
+                          <Star
+                            key={i}
+                            size={16}
+                            className={i < (product.rating || 4) ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}
+                          />
                         ))}
                       </div>
+                      <span className="text-sm text-gray-600">({product.rating || 4.5}/5)</span>
                     </div>
-                  )}
+                    <p className="text-gray-600 text-sm">{product.description}</p>
+                  </div>
 
-                  {product.howToUse && (
+                  <div className="space-y-4">
                     <div>
-                      <h3 className="mb-2">Modo de Uso</h3>
-                      <p className="text-gray-600 text-sm">{product.howToUse}</p>
+                      <h3 className="mb-2">Descripción Detallada</h3>
+                      <p className="text-gray-600 text-sm leading-relaxed">
+                        {product.detailedDescription ||
+                          'Este suplemento de alta calidad ha sido formulado con ingredientes premium para proporcionarte los mejores resultados.'}
+                      </p>
                     </div>
-                  )}
 
-                  {product.ingredients && (
-                    <div>
-                      <h3 className="mb-2">Ingredientes</h3>
-                      <p className="text-gray-600 text-sm">{product.ingredients}</p>
-                    </div>
-                  )}
+                    {product.benefits && product.benefits.length > 0 && (
+                      <div>
+                        <h3 className="mb-2">Beneficios</h3>
+                        <ul className="space-y-2">
+                          {product.benefits.map((benefit, index) => (
+                            <li key={index} className="flex items-start gap-2 text-sm text-gray-600">
+                              <span className="text-green-600 mt-0.5">✓</span>
+                              {benefit}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {product.flavors && product.flavors.length > 0 && (
+                      <div>
+                        <h3 className="mb-3">Sabores disponibles</h3>
+                        <div className="flex flex-wrap gap-2">
+                          {product.flavors.map((flavor, index) => (
+                            <span
+                              key={index}
+                              className="px-3 py-1.5 rounded-full text-sm font-medium bg-gradient-to-r from-purple-100 to-pink-100 text-purple-800 border border-purple-200"
+                            >
+                              {flavor}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {product.howToUse && (
+                      <div>
+                        <h3 className="mb-2">Modo de Uso</h3>
+                        <p className="text-gray-600 text-sm">{product.howToUse}</p>
+                      </div>
+                    )}
+
+                    {product.ingredients && (
+                      <div>
+                        <h3 className="mb-2">Ingredientes</h3>
+                        <p className="text-gray-600 text-sm">{product.ingredients}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Price/CTA — desktop only */}
+                <div className="hidden md:block pt-4 border-t">
+                  <PriceCTA />
                 </div>
               </div>
 
-              {/* Price/CTA — desktop only (stays at bottom of right column) */}
-              <div className="hidden md:block pt-4 border-t">
-                <PriceCTA />
-              </div>
             </div>
-
           </div>
-        </div>
 
-        {/* Price/CTA — mobile only, always pinned at bottom */}
-        <div className="md:hidden flex-shrink-0 px-4 py-3 border-t bg-white">
-          <PriceCTA />
-        </div>
+          {/* Price/CTA — mobile only, pinned at bottom */}
+          <div className="md:hidden flex-shrink-0 px-4 py-3 border-t bg-white">
+            <PriceCTA />
+          </div>
 
+        </div>
       </div>
-    </div>
+    </>
   );
 }

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Plus, Edit, Trash2, X, Save, Upload } from 'lucide-react';
 import { uploadProductImage } from '@/api';
+import { processProductImage } from '@/lib/processProductImage';
 
 interface Product {
   id: number;
@@ -57,11 +58,12 @@ export function AdminPanel({ products, categories, onUpdateProducts, onUpdateCat
   const [benefitInput, setBenefitInput] = useState('');
   const [flavorInput, setFlavorInput] = useState('');
 
-  const handleImagesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImagesChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files ?? []);
-    const entries = files.map(file => ({ file, preview: URL.createObjectURL(file) }));
-    setNewFiles(prev => [...prev, ...entries]);
     e.target.value = '';
+    const processed = await Promise.all(files.map(f => processProductImage(f)));
+    const entries = processed.map(file => ({ file, preview: URL.createObjectURL(file) }));
+    setNewFiles(prev => [...prev, ...entries]);
   };
 
   const removeExistingImage = (index: number) => {
@@ -266,7 +268,8 @@ export function AdminPanel({ products, categories, onUpdateProducts, onUpdateCat
 
                         {/* Imágenes */}
                         <div>
-                          <label className="block text-xs text-gray-500 mb-2">Imágenes <span className="text-gray-400">(la primera aparece en la tarjeta)</span></label>
+                          <label className="block text-xs text-gray-500 mb-1">Imágenes</label>
+                          <p className="text-xs text-gray-400 mb-2">Tamaño ideal: <strong>1000×1000 px</strong> cuadrada, fondo blanco, formato JPG/PNG. La primera imagen aparece en la tarjeta.</p>
                           <div className="flex flex-wrap gap-2">
                             {existingImages.map((src, i) => (
                               <div key={i} className="relative w-16 h-16 flex-shrink-0">
