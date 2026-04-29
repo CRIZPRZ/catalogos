@@ -18,7 +18,7 @@ interface ProductCardProps {
   onClick: () => void;
 }
 
-export function ProductCard({ name, category, price, image, description, inStock, onClick }: ProductCardProps) {
+export function ProductCard({ name, category, price, image, inStock, onClick }: ProductCardProps) {
   const handleWhatsApp = (e: React.MouseEvent) => {
     e.stopPropagation();
     const msg = encodeURIComponent(`Hola, me interesa el producto: *${name}* - $${price.toFixed(2)}`);
@@ -32,35 +32,22 @@ export function ProductCard({ name, category, price, image, description, inStock
     >
       <div className="relative h-64 bg-white border-b border-gray-100">
         <ImageWithFallback src={image} alt={name} className="w-full h-full object-contain p-2" />
-        {!inStock && (
-          <div className="absolute top-4 right-4 bg-red-500 text-white px-3 py-1 rounded-full text-sm">
-            Agotado
-          </div>
-        )}
-        {inStock && (
-          <div className="absolute top-4 right-4 bg-green-500 text-white px-3 py-1 rounded-full text-sm">
-            Disponible
-          </div>
-        )}
+        <div className={`absolute top-4 right-4 px-3 py-1 rounded-full text-sm text-white ${inStock ? 'bg-green-500' : 'bg-red-500'}`}>
+          {inStock ? 'Entrega inmediata' : 'Realizar pedido'}
+        </div>
       </div>
 
       <div className="p-6">
         <span className="text-sm text-blue-600 font-medium uppercase tracking-wide">
           {category}
         </span>
-        <h3 className="mt-2 mb-2">{name}</h3>
-        <p className="text-gray-600 text-sm mb-4 line-clamp-2">{description}</p>
+        <h3 className="mt-2 mb-4">{name}</h3>
 
-        <div className="flex items-center justify-between mt-4">
+        <div className="flex items-center justify-between">
           <span className="text-gray-900">${price.toFixed(2)}</span>
           <button
             onClick={handleWhatsApp}
-            disabled={!inStock}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
-              inStock
-                ? 'bg-green-500 text-white hover:bg-green-600'
-                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-            }`}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg transition-colors bg-green-500 text-white hover:bg-green-600"
           >
             <WhatsAppIcon />
             Pedir

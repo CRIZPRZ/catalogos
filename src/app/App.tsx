@@ -64,6 +64,7 @@ export default function App() {
   };
 
   const filteredProducts = products.filter((product) => {
+    if (product.draft) return false;
     const matchesCategory = selectedCategory === 'Todos' || product.category === selectedCategory;
     const matchesSearch =
       product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||

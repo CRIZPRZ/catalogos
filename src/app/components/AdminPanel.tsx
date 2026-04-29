@@ -46,6 +46,7 @@ export function AdminPanel({ products, categories, onUpdateProducts, onUpdateCat
     images: [],
     description: '',
     inStock: true,
+    draft: false,
     detailedDescription: '',
     benefits: [],
     flavors: [],
@@ -89,9 +90,26 @@ export function AdminPanel({ products, categories, onUpdateProducts, onUpdateCat
   };
 
   const handleSaveProduct = async () => {
-    if (!formData.name || !formData.category || !formData.price) {
-      alert('Por favor completa los campos obligatorios: nombre, categoría y precio');
-      return;
+    if (formData.draft) {
+      if (existingImages.length === 0 && newFiles.length === 0) {
+        alert('Un borrador requiere al menos una foto');
+        return;
+      }
+    } else {
+      const missing: string[] = [];
+      if (!formData.name) missing.push('nombre');
+      if (!formData.category) missing.push('categoría');
+      if (!formData.price) missing.push('precio');
+      if (existingImages.length === 0 && newFiles.length === 0) missing.push('al menos una foto');
+      if (!formData.description) missing.push('descripción');
+      if (!formData.howToUse) missing.push('modo de uso');
+      if (!formData.ingredients) missing.push('ingredientes');
+      if (!formData.benefits?.length) missing.push('al menos un beneficio');
+      if (!formData.flavors?.length) missing.push('al menos un sabor');
+      if (missing.length > 0) {
+        alert(`Faltan los siguientes campos:\n• ${missing.join('\n• ')}`);
+        return;
+      }
     }
 
     setUploading(true);
@@ -123,6 +141,7 @@ export function AdminPanel({ products, categories, onUpdateProducts, onUpdateCat
       images: [],
       description: '',
       inStock: true,
+      draft: false,
       detailedDescription: '',
       benefits: [],
       flavors: [],
@@ -243,6 +262,20 @@ export function AdminPanel({ products, categories, onUpdateProducts, onUpdateCat
                           </div>
                         </div>
 
+                        {/* Borrador */}
+                        <label className="flex items-center gap-3 p-3 rounded-lg border border-dashed border-yellow-400 bg-yellow-50 cursor-pointer select-none">
+                          <input
+                            type="checkbox"
+                            checked={!!formData.draft}
+                            onChange={(e) => setFormData({ ...formData, draft: e.target.checked })}
+                            className="w-4 h-4 accent-yellow-500"
+                          />
+                          <div>
+                            <span className="text-sm font-medium text-yellow-800">Guardar como borrador</span>
+                            <p className="text-xs text-yellow-700">No se mostrará en el catálogo. Solo requiere al menos una foto.</p>
+                          </div>
+                        </label>
+
                         {/* Precio + Porciones + Rating + Stock */}
                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                           <div>
@@ -295,16 +328,10 @@ export function AdminPanel({ products, categories, onUpdateProducts, onUpdateCat
                           </div>
                         </div>
 
-                        {/* Descripciones lado a lado */}
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                          <div>
-                            <label className="block text-xs text-gray-500 mb-1">Descripción Corta</label>
-                            <textarea value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} className="w-full px-3 py-2 border rounded-lg text-sm" rows={2} />
-                          </div>
-                          <div>
-                            <label className="block text-xs text-gray-500 mb-1">Descripción Detallada</label>
-                            <textarea value={formData.detailedDescription} onChange={(e) => setFormData({ ...formData, detailedDescription: e.target.value })} className="w-full px-3 py-2 border rounded-lg text-sm" rows={2} />
-                          </div>
+                        {/* Descripción */}
+                        <div>
+                          <label className="block text-xs text-gray-500 mb-1">Descripción</label>
+                          <textarea value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} className="w-full px-3 py-2 border rounded-lg text-sm" rows={3} />
                         </div>
 
                         {/* Modo de uso + Ingredientes lado a lado */}
@@ -375,8 +402,13 @@ export function AdminPanel({ products, categories, onUpdateProducts, onUpdateCat
                     <div key={product.id} className="flex items-center gap-3 bg-white border rounded-lg p-3 hover:shadow-md transition-shadow">
                       <img src={product.image} alt={product.name} className="w-14 h-14 sm:w-20 sm:h-20 object-cover rounded flex-shrink-0" />
                       <div className="flex-1 min-w-0">
-                        <h4 className="font-medium text-sm sm:text-base truncate">{product.name}</h4>
-                        <p className="text-xs sm:text-sm text-gray-600">{product.category} — ${product.price.toFixed(2)}</p>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h4 className="font-medium text-sm sm:text-base truncate">{product.name || <span className="text-gray-400 italic">Sin nombre</span>}</h4>
+                          {product.draft && (
+                            <span className="text-xs bg-yellow-100 text-yellow-800 border border-yellow-300 px-2 py-0.5 rounded-full flex-shrink-0">Borrador</span>
+                          )}
+                        </div>
+                        <p className="text-xs sm:text-sm text-gray-600">{product.category || '—'} — ${product.price?.toFixed(2) ?? '0.00'}</p>
                         <p className="text-xs text-gray-400">{product.inStock ? 'En stock' : 'Agotado'}</p>
                       </div>
                       <div className="flex gap-1 sm:gap-2 flex-shrink-0">

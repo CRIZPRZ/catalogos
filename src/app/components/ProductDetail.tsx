@@ -148,7 +148,7 @@ export function ProductDetail({ product, onClose }: ProductDetailProps) {
         }`}
       >
         <WhatsAppIcon />
-        {product.inStock ? 'Pedir por WhatsApp' : 'Producto Agotado'}
+        {product.inStock ? 'Entrega inmediata por WhatsApp' : 'Realizar pedido'}
       </button>
     </>
   );
@@ -277,16 +277,12 @@ export function ProductDetail({ product, onClose }: ProductDetailProps) {
                       </div>
                       <span className="text-sm text-gray-600">({product.rating || 4.5}/5)</span>
                     </div>
-                    <p className="text-gray-600 text-sm">{product.description}</p>
                   </div>
 
                   <div className="space-y-4">
                     <div>
-                      <h3 className="mb-2">Descripción Detallada</h3>
-                      <p className="text-gray-600 text-sm leading-relaxed">
-                        {product.detailedDescription ||
-                          'Este suplemento de alta calidad ha sido formulado con ingredientes premium para proporcionarte los mejores resultados.'}
-                      </p>
+                      <h3 className="mb-2">Descripción</h3>
+                      <p className="text-gray-600 text-sm leading-relaxed">{product.description}</p>
                     </div>
 
                     {product.benefits && product.benefits.length > 0 && (
