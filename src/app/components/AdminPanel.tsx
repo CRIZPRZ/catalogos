@@ -275,6 +275,32 @@ export function AdminPanel({ products, categories, onUpdateProducts, onUpdateCat
     });
   };
 
+  const handleTouchStart = (id: string, e: React.TouchEvent<HTMLDivElement>) => {
+    if ((e.target as HTMLElement).closest('button, input, label')) return;
+    setDraggedImageId(id);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
+    if (!draggedImageId) return;
+
+    const touch = e.touches[0];
+    if (!touch) return;
+
+    const target = document.elementFromPoint(touch.clientX, touch.clientY) as HTMLElement | null;
+    const dropTarget = target?.closest<HTMLElement>('[data-image-id]');
+    const targetId = dropTarget?.dataset.imageId;
+
+    if (targetId && targetId !== draggedImageId) {
+      moveImage(draggedImageId, targetId);
+    }
+
+    e.preventDefault();
+  };
+
+  const handleTouchEnd = () => {
+    setDraggedImageId(null);
+  };
+
   const cropTarget = cropImageId ? imageItems.find(item => item.id === cropImageId && item.kind === 'new') : null;
 
   return (
@@ -391,6 +417,7 @@ export function AdminPanel({ products, categories, onUpdateProducts, onUpdateCat
                             {imageItems.map((item, i) => (
                               <div
                                 key={item.id}
+                                data-image-id={item.id}
                                 draggable
                                 onDragStart={() => setDraggedImageId(item.id)}
                                 onDragOver={(e) => e.preventDefault()}
@@ -401,9 +428,14 @@ export function AdminPanel({ products, categories, onUpdateProducts, onUpdateCat
                                   }
                                 }}
                                 onDragEnd={() => setDraggedImageId(null)}
+                                onTouchStart={(e) => handleTouchStart(item.id, e)}
+                                onTouchMove={handleTouchMove}
+                                onTouchEnd={handleTouchEnd}
+                                onTouchCancel={handleTouchEnd}
                                 className={`relative w-16 h-16 flex-shrink-0 rounded-lg border bg-white cursor-move overflow-visible ${
                                   draggedImageId === item.id ? 'opacity-60 border-blue-400' : item.kind === 'new' ? 'border-blue-300' : 'border-gray-200'
                                 }`}
+                                style={{ touchAction: 'none' }}
                                 title={`Imagen ${i + 1}`}
                               >
                                 <img src={item.preview} alt="" className="w-full h-full object-cover rounded-lg" />
