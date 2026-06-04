@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { Plus, Edit, Trash2, X, Save, Upload } from 'lucide-react';
+import { Plus, Edit, Trash2, X, Save, Upload, Crop } from 'lucide-react';
 import { uploadProductImage } from '@/api';
 import { processProductImage } from '@/lib/processProductImage';
+import { ImageCropper } from './ImageCropper';
 
 interface Product {
   id: number;
@@ -29,14 +30,27 @@ interface AdminPanelProps {
   onClose: () => void;
 }
 
+interface ProductImageItem {
+  id: string;
+  kind: 'existing' | 'new';
+  url: string;
+  preview: string;
+  file?: File;
+}
+
+function createImageId() {
+  return `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
 export function AdminPanel({ products, categories, onUpdateProducts, onUpdateCategories, onClose }: AdminPanelProps) {
   const [activeTab, setActiveTab] = useState<'products' | 'categories'>('products');
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [showProductForm, setShowProductForm] = useState(false);
   const [newCategory, setNewCategory] = useState('');
   const [uploading, setUploading] = useState(false);
-  const [existingImages, setExistingImages] = useState<string[]>([]);
-  const [newFiles, setNewFiles] = useState<{ file: File; preview: string }[]>([]);
+  const [imageItems, setImageItems] = useState<ProductImageItem[]>([]);
+  const [cropImageId, setCropImageId] = useState<string | null>(null);
+  const [draggedImageId, setDraggedImageId] = useState<string | null>(null);
 
   const [formData, setFormData] = useState<Partial<Product>>({
     name: '',
@@ -59,27 +73,77 @@ export function AdminPanel({ products, categories, onUpdateProducts, onUpdateCat
   const [benefitInput, setBenefitInput] = useState('');
   const [flavorInput, setFlavorInput] = useState('');
 
+  const releaseImagePreview = (item: ProductImageItem) => {
+    if (item.kind === 'new') {
+      URL.revokeObjectURL(item.preview);
+    }
+  };
+
+  const replaceImageItems = (nextItems: ProductImageItem[]) => {
+    setImageItems(prev => {
+      prev.forEach(item => {
+        if (!nextItems.some(next => next.id === item.id)) {
+          releaseImagePreview(item);
+        }
+      });
+      return nextItems;
+    });
+  };
+
+  const clearImageItems = () => {
+    setImageItems(prev => {
+      prev.forEach(releaseImagePreview);
+      return [];
+    });
+  };
+
   const handleImagesChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files ?? []);
     e.target.value = '';
     const processed = await Promise.all(files.map(f => processProductImage(f)));
-    const entries = processed.map(file => ({ file, preview: URL.createObjectURL(file) }));
-    setNewFiles(prev => [...prev, ...entries]);
+    const entries = processed.map(file => {
+      const preview = URL.createObjectURL(file);
+      return {
+        id: createImageId(),
+        kind: 'new' as const,
+        url: preview,
+        preview,
+        file,
+      };
+    });
+    setImageItems(prev => [...prev, ...entries]);
   };
 
-  const removeExistingImage = (index: number) => {
-    setExistingImages(prev => prev.filter((_, i) => i !== index));
+  const removeImage = (id: string) => {
+    replaceImageItems(imageItems.filter(item => item.id !== id));
+    if (cropImageId === id) setCropImageId(null);
+    if (draggedImageId === id) setDraggedImageId(null);
   };
 
-  const removeNewFile = (index: number) => {
-    setNewFiles(prev => prev.filter((_, i) => i !== index));
+  const handleCropComplete = (id: string, file: File) => {
+    const nextPreview = URL.createObjectURL(file);
+    setImageItems(prev => prev.map(item => {
+      if (item.id !== id) return item;
+      releaseImagePreview(item);
+      return {
+        ...item,
+        url: nextPreview,
+        preview: nextPreview,
+        file,
+      };
+    }));
+    setCropImageId(null);
   };
 
   const handleEditProduct = (product: Product) => {
     setEditingProduct(product);
     setFormData(product);
-    setExistingImages(product.images?.length ? product.images : (product.image ? [product.image] : []));
-    setNewFiles([]);
+    replaceImageItems((product.images?.length ? product.images : (product.image ? [product.image] : [])).map((src) => ({
+      id: createImageId(),
+      kind: 'existing' as const,
+      url: src,
+      preview: src,
+    })));
     setShowProductForm(true);
   };
 
@@ -91,7 +155,7 @@ export function AdminPanel({ products, categories, onUpdateProducts, onUpdateCat
 
   const handleSaveProduct = async () => {
     if (formData.draft) {
-      if (existingImages.length === 0 && newFiles.length === 0) {
+      if (imageItems.length === 0) {
         alert('Un borrador requiere al menos una foto');
         return;
       }
@@ -100,7 +164,7 @@ export function AdminPanel({ products, categories, onUpdateProducts, onUpdateCat
       if (!formData.name) missing.push('nombre');
       if (!formData.category) missing.push('categoría');
       if (!formData.price) missing.push('precio');
-      if (existingImages.length === 0 && newFiles.length === 0) missing.push('al menos una foto');
+      if (imageItems.length === 0) missing.push('al menos una foto');
       if (!formData.description) missing.push('descripción');
       if (!formData.howToUse) missing.push('modo de uso');
       if (!formData.ingredients) missing.push('ingredientes');
@@ -113,13 +177,15 @@ export function AdminPanel({ products, categories, onUpdateProducts, onUpdateCat
     }
 
     setUploading(true);
-    let uploadedUrls: string[] = [];
+    let finalImages: string[] = [];
     try {
-      uploadedUrls = await Promise.all(newFiles.map(({ file }) => uploadProductImage(file)));
+      finalImages = await Promise.all(imageItems.map(async (item) => {
+        if (item.kind === 'existing') return item.url;
+        return uploadProductImage(item.file!);
+      }));
     } finally {
       setUploading(false);
     }
-    const finalImages = [...existingImages, ...uploadedUrls];
     const productData = { ...formData, images: finalImages, image: finalImages[0] ?? '' };
 
     if (editingProduct) {
@@ -152,10 +218,11 @@ export function AdminPanel({ products, categories, onUpdateProducts, onUpdateCat
     });
     setBenefitInput('');
     setFlavorInput('');
-    setExistingImages([]);
-    setNewFiles([]);
+    clearImageItems();
     setEditingProduct(null);
     setShowProductForm(false);
+    setCropImageId(null);
+    setDraggedImageId(null);
   };
 
   const handleAddBenefit = () => {
@@ -193,6 +260,23 @@ export function AdminPanel({ products, categories, onUpdateProducts, onUpdateCat
     }
   };
 
+  const moveImage = (fromId: string, toId: string) => {
+    if (fromId === toId) return;
+
+    setImageItems(prev => {
+      const fromIndex = prev.findIndex(item => item.id === fromId);
+      const toIndex = prev.findIndex(item => item.id === toId);
+      if (fromIndex === -1 || toIndex === -1) return prev;
+
+      const next = [...prev];
+      const [moved] = next.splice(fromIndex, 1);
+      next.splice(toIndex, 0, moved);
+      return next;
+    });
+  };
+
+  const cropTarget = cropImageId ? imageItems.find(item => item.id === cropImageId && item.kind === 'new') : null;
+
   return (
     <div className="fixed inset-0 bg-gray-900 bg-opacity-50 z-50 overflow-y-auto">
       <div className="min-h-screen p-2 sm:p-4">
@@ -225,7 +309,7 @@ export function AdminPanel({ products, categories, onUpdateProducts, onUpdateCat
                 <div className="flex justify-between items-center mb-4 sm:mb-6">
                   <h3>Gestión de Productos ({products.length})</h3>
                   <button
-                    onClick={() => { setExistingImages([]); setNewFiles([]); setShowProductForm(true); }}
+                    onClick={() => { resetForm(); setShowProductForm(true); }}
                     className="flex items-center gap-2 bg-blue-600 text-white px-3 sm:px-4 py-2 rounded-lg hover:bg-blue-700 text-sm sm:text-base"
                   >
                     <Plus size={18} />
@@ -234,7 +318,7 @@ export function AdminPanel({ products, categories, onUpdateProducts, onUpdateCat
                   </button>
                 </div>
 
-                {showProductForm && (
+                {showProductForm && (<>
                   <div className="fixed inset-0 bg-black/50 z-[60] flex items-end sm:items-center justify-center p-0 sm:p-4">
                     <div className="bg-white rounded-t-xl sm:rounded-xl w-full max-w-3xl max-h-[95vh] sm:max-h-[90vh] flex flex-col shadow-2xl">
 
@@ -302,20 +386,41 @@ export function AdminPanel({ products, categories, onUpdateProducts, onUpdateCat
                         {/* Imágenes */}
                         <div>
                           <label className="block text-xs text-gray-500 mb-1">Imágenes</label>
-                          <p className="text-xs text-gray-400 mb-2">Tamaño ideal: <strong>1000×1000 px</strong> cuadrada, fondo blanco, formato JPG/PNG. La primera imagen aparece en la tarjeta.</p>
+                          <p className="text-xs text-gray-400 mb-2">Tamaño ideal: <strong>1000×1000 px</strong> cuadrada, fondo blanco, formato JPG/PNG. La primera imagen aparece en la tarjeta. Puedes arrastrarlas para cambiar el orden.</p>
                           <div className="flex flex-wrap gap-2">
-                            {existingImages.map((src, i) => (
-                              <div key={i} className="relative w-16 h-16 flex-shrink-0">
-                                <img src={src} alt="" className="w-full h-full object-cover rounded-lg border" />
-                                <button type="button" onClick={() => removeExistingImage(i)} className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center hover:bg-red-600">
-                                  <X size={10} />
-                                </button>
-                              </div>
-                            ))}
-                            {newFiles.map(({ preview }, i) => (
-                              <div key={`new-${i}`} className="relative w-16 h-16 flex-shrink-0">
-                                <img src={preview} alt="" className="w-full h-full object-cover rounded-lg border border-blue-300" />
-                                <button type="button" onClick={() => removeNewFile(i)} className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center hover:bg-red-600">
+                            {imageItems.map((item, i) => (
+                              <div
+                                key={item.id}
+                                draggable
+                                onDragStart={() => setDraggedImageId(item.id)}
+                                onDragOver={(e) => e.preventDefault()}
+                                onDrop={() => {
+                                  if (draggedImageId) {
+                                    moveImage(draggedImageId, item.id);
+                                    setDraggedImageId(null);
+                                  }
+                                }}
+                                onDragEnd={() => setDraggedImageId(null)}
+                                className={`relative w-16 h-16 flex-shrink-0 rounded-lg border bg-white cursor-move overflow-visible ${
+                                  draggedImageId === item.id ? 'opacity-60 border-blue-400' : item.kind === 'new' ? 'border-blue-300' : 'border-gray-200'
+                                }`}
+                                title={`Imagen ${i + 1}`}
+                              >
+                                <img src={item.preview} alt="" className="w-full h-full object-cover rounded-lg" />
+                                <div className="absolute left-1 top-1 rounded bg-black/65 px-1 py-0.5 text-[10px] text-white">
+                                  {i + 1}
+                                </div>
+                                {item.kind === 'new' && (
+                                  <button
+                                    type="button"
+                                    onClick={() => setCropImageId(item.id)}
+                                    className="absolute bottom-0 left-0 bg-blue-600 text-white rounded-tr-lg px-1.5 py-1 hover:bg-blue-700 z-10"
+                                    title="Recortar"
+                                  >
+                                    <Crop size={12} />
+                                  </button>
+                                )}
+                                <button type="button" onClick={() => removeImage(item.id)} className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center hover:bg-red-600 z-10">
                                   <X size={10} />
                                 </button>
                               </div>
@@ -325,6 +430,19 @@ export function AdminPanel({ products, categories, onUpdateProducts, onUpdateCat
                               <span className="text-xs text-gray-400">Agregar</span>
                               <input type="file" accept="image/*" multiple onChange={handleImagesChange} className="hidden" />
                             </label>
+                          </div>
+                          <div className="mt-2 flex flex-wrap gap-2">
+                            {imageItems.filter(item => item.kind === 'new').map((item) => (
+                              <button
+                                key={`${item.id}-crop-button`}
+                                type="button"
+                                onClick={() => setCropImageId(item.id)}
+                                className="inline-flex items-center gap-1 rounded-md border border-blue-200 bg-blue-50 px-2 py-1 text-xs text-blue-700 hover:bg-blue-100"
+                              >
+                                <Crop size={12} />
+                                Recortar imagen {imageItems.findIndex(current => current.id === item.id) + 1}
+                              </button>
+                            ))}
                           </div>
                         </div>
 
@@ -395,7 +513,16 @@ export function AdminPanel({ products, categories, onUpdateProducts, onUpdateCat
 
                     </div>
                   </div>
-                )}
+
+                  {cropTarget && cropTarget.file && (
+                    <ImageCropper
+                      imageUrl={cropTarget.preview}
+                      fileName={cropTarget.file.name}
+                      onCropComplete={(file) => handleCropComplete(cropTarget.id, file)}
+                      onCancel={() => setCropImageId(null)}
+                    />
+                  )}
+                </>)}
 
                 <div className="grid gap-3">
                   {products.map(product => (
