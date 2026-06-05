@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Edit, Trash2, X, Save, Upload, Crop } from 'lucide-react';
+import { Plus, Edit, Trash2, X, Save, Upload, Crop, ZoomIn } from 'lucide-react';
 import { uploadProductImage } from '@/api';
 import { processProductImage } from '@/lib/processProductImage';
 import { ImageCropper } from './ImageCropper';
@@ -13,7 +13,9 @@ interface Product {
   images: string[];
   description: string;
   inStock: boolean;
+  draft?: boolean;
   detailedDescription?: string;
+  importantInfo?: string;
   benefits?: string[];
   flavors?: string[];
   howToUse?: string;
@@ -51,6 +53,7 @@ export function AdminPanel({ products, categories, onUpdateProducts, onUpdateCat
   const [imageItems, setImageItems] = useState<ProductImageItem[]>([]);
   const [cropImageId, setCropImageId] = useState<string | null>(null);
   const [draggedImageId, setDraggedImageId] = useState<string | null>(null);
+  const [previewImageId, setPreviewImageId] = useState<string | null>(null);
 
   const [formData, setFormData] = useState<Partial<Product>>({
     name: '',
@@ -62,6 +65,7 @@ export function AdminPanel({ products, categories, onUpdateProducts, onUpdateCat
     inStock: true,
     draft: false,
     detailedDescription: '',
+    importantInfo: '',
     benefits: [],
     flavors: [],
     howToUse: '',
@@ -118,6 +122,7 @@ export function AdminPanel({ products, categories, onUpdateProducts, onUpdateCat
     replaceImageItems(imageItems.filter(item => item.id !== id));
     if (cropImageId === id) setCropImageId(null);
     if (draggedImageId === id) setDraggedImageId(null);
+    if (previewImageId === id) setPreviewImageId(null);
   };
 
   const handleCropComplete = (id: string, file: File) => {
@@ -209,6 +214,7 @@ export function AdminPanel({ products, categories, onUpdateProducts, onUpdateCat
       inStock: true,
       draft: false,
       detailedDescription: '',
+      importantInfo: '',
       benefits: [],
       flavors: [],
       howToUse: '',
@@ -223,6 +229,7 @@ export function AdminPanel({ products, categories, onUpdateProducts, onUpdateCat
     setShowProductForm(false);
     setCropImageId(null);
     setDraggedImageId(null);
+    setPreviewImageId(null);
   };
 
   const handleAddBenefit = () => {
@@ -302,13 +309,14 @@ export function AdminPanel({ products, categories, onUpdateProducts, onUpdateCat
   };
 
   const cropTarget = cropImageId ? imageItems.find(item => item.id === cropImageId && item.kind === 'new') : null;
+  const previewImage = previewImageId ? imageItems.find(item => item.id === previewImageId) : null;
 
   return (
     <div className="fixed inset-0 bg-gray-900 bg-opacity-50 z-50 overflow-y-auto">
       <div className="min-h-screen p-2 sm:p-4">
         <div className="max-w-7xl mx-auto bg-white rounded-xl shadow-2xl my-4 sm:my-8">
-          <div className="flex items-center justify-between p-4 sm:p-6 border-b">
-            <h2>Panel Administrativo</h2>
+          <div className="flex items-center justify-between gap-3 p-4 sm:p-6 border-b">
+            <h2 className="min-w-0 text-2xl sm:text-3xl leading-tight">Panel Administrativo</h2>
             <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
               <X size={24} />
             </button>
@@ -332,11 +340,11 @@ export function AdminPanel({ products, categories, onUpdateProducts, onUpdateCat
           <div className="p-3 sm:p-6">
             {activeTab === 'products' && (
               <div>
-                <div className="flex justify-between items-center mb-4 sm:mb-6">
-                  <h3>Gestión de Productos ({products.length})</h3>
+                <div className="mb-4 flex flex-col gap-3 sm:mb-6 sm:flex-row sm:items-center sm:justify-between">
+                  <h3 className="text-xl sm:text-2xl leading-tight">Gestión de Productos ({products.length})</h3>
                   <button
                     onClick={() => { resetForm(); setShowProductForm(true); }}
-                    className="flex items-center gap-2 bg-blue-600 text-white px-3 sm:px-4 py-2 rounded-lg hover:bg-blue-700 text-sm sm:text-base"
+                    className="flex w-full items-center justify-center gap-2 bg-blue-600 px-3 py-2 text-sm text-white rounded-lg hover:bg-blue-700 sm:w-auto sm:px-4 sm:text-base"
                   >
                     <Plus size={18} />
                     <span className="hidden sm:inline">Nuevo Producto</span>
@@ -432,27 +440,53 @@ export function AdminPanel({ products, categories, onUpdateProducts, onUpdateCat
                                 onTouchMove={handleTouchMove}
                                 onTouchEnd={handleTouchEnd}
                                 onTouchCancel={handleTouchEnd}
-                                className={`relative w-16 h-16 flex-shrink-0 rounded-lg border bg-white cursor-move overflow-visible ${
+                                className={`group relative w-16 h-16 flex-shrink-0 rounded-lg border bg-white cursor-move overflow-visible ${
                                   draggedImageId === item.id ? 'opacity-60 border-blue-400' : item.kind === 'new' ? 'border-blue-300' : 'border-gray-200'
                                 }`}
                                 style={{ touchAction: 'none' }}
                                 title={`Imagen ${i + 1}`}
                               >
-                                <img src={item.preview} alt="" className="w-full h-full object-cover rounded-lg" />
+                                <button
+                                  type="button"
+                                  onClick={() => setPreviewImageId(item.id)}
+                                  className="block h-full w-full"
+                                  title="Ver más grande"
+                                >
+                                  <img src={item.preview} alt="" className="w-full h-full object-cover rounded-lg" />
+                                </button>
                                 <div className="absolute left-1 top-1 rounded bg-black/65 px-1 py-0.5 text-[10px] text-white">
                                   {i + 1}
                                 </div>
+                                <button
+                                  type="button"
+                                  onClick={() => setPreviewImageId(item.id)}
+                                  className="absolute inset-x-0 bottom-0 flex items-center justify-center gap-1 bg-black/55 px-1 py-1 text-[10px] text-white opacity-0 transition-opacity hover:bg-black/65 focus:opacity-100 group-hover:opacity-100"
+                                  title="Ver más grande"
+                                >
+                                  <ZoomIn size={10} />
+                                  Ver
+                                </button>
                                 {item.kind === 'new' && (
                                   <button
                                     type="button"
-                                    onClick={() => setCropImageId(item.id)}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setCropImageId(item.id);
+                                    }}
                                     className="absolute bottom-0 left-0 bg-blue-600 text-white rounded-tr-lg px-1.5 py-1 hover:bg-blue-700 z-10"
                                     title="Recortar"
                                   >
                                     <Crop size={12} />
                                   </button>
                                 )}
-                                <button type="button" onClick={() => removeImage(item.id)} className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center hover:bg-red-600 z-10">
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    removeImage(item.id);
+                                  }}
+                                  className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center hover:bg-red-600 z-10"
+                                >
                                   <X size={10} />
                                 </button>
                               </div>
@@ -482,6 +516,17 @@ export function AdminPanel({ products, categories, onUpdateProducts, onUpdateCat
                         <div>
                           <label className="block text-xs text-gray-500 mb-1">Descripción</label>
                           <textarea value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} className="w-full px-3 py-2 border rounded-lg text-sm" rows={3} />
+                        </div>
+
+                        <div>
+                          <label className="block text-xs text-gray-500 mb-1">Dato importante (opcional)</label>
+                          <textarea
+                            value={formData.importantInfo ?? ''}
+                            onChange={(e) => setFormData({ ...formData, importantInfo: e.target.value })}
+                            className="w-full px-3 py-2 border rounded-lg text-sm"
+                            rows={2}
+                            placeholder="Ej: No apto para menores de edad, tomar con alimentos, contiene cafeína..."
+                          />
                         </div>
 
                         {/* Modo de uso + Ingredientes lado a lado */}
@@ -554,23 +599,47 @@ export function AdminPanel({ products, categories, onUpdateProducts, onUpdateCat
                       onCancel={() => setCropImageId(null)}
                     />
                   )}
+
+                  {previewImage && (
+                    <div
+                      className="fixed inset-0 z-[70] flex items-center justify-center bg-black/80 p-4"
+                      onClick={() => setPreviewImageId(null)}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => setPreviewImageId(null)}
+                        className="absolute right-4 top-4 rounded-full bg-white/15 p-2 text-white hover:bg-white/25"
+                        title="Cerrar vista previa"
+                      >
+                        <X size={20} />
+                      </button>
+                      <img
+                        src={previewImage.preview}
+                        alt=""
+                        className="max-h-[85vh] max-w-[95vw] rounded-xl bg-white object-contain shadow-2xl"
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                    </div>
+                  )}
                 </>)}
 
                 <div className="grid gap-3">
                   {products.map(product => (
-                    <div key={product.id} className="flex items-center gap-3 bg-white border rounded-lg p-3 hover:shadow-md transition-shadow">
-                      <img src={product.image} alt={product.name} className="w-14 h-14 sm:w-20 sm:h-20 object-cover rounded flex-shrink-0" />
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <h4 className="font-medium text-sm sm:text-base truncate">{product.name || <span className="text-gray-400 italic">Sin nombre</span>}</h4>
+                    <div key={product.id} className="flex items-start gap-3 bg-white border rounded-lg p-3 hover:shadow-md transition-shadow">
+                      <img src={product.image} alt={product.name} className="w-14 h-14 sm:w-20 sm:h-20 object-cover rounded flex-shrink-0 mt-0.5" />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-start gap-2 flex-wrap">
+                          <h4 className="min-w-0 font-medium text-sm leading-snug sm:text-base break-words uppercase">
+                            {product.name || <span className="text-gray-400 italic">Sin nombre</span>}
+                          </h4>
                           {product.draft && (
                             <span className="text-xs bg-yellow-100 text-yellow-800 border border-yellow-300 px-2 py-0.5 rounded-full flex-shrink-0">Borrador</span>
                           )}
                         </div>
-                        <p className="text-xs sm:text-sm text-gray-600">{product.category || '—'} — ${product.price?.toFixed(2) ?? '0.00'}</p>
+                        <p className="mt-1 break-words text-xs text-gray-600 sm:text-sm">{product.category || '—'} — ${product.price?.toFixed(2) ?? '0.00'}</p>
                         <p className="text-xs text-gray-400">{product.inStock ? 'En stock' : 'Agotado'}</p>
                       </div>
-                      <div className="flex gap-1 sm:gap-2 flex-shrink-0">
+                      <div className="ml-auto flex flex-col gap-1 sm:flex-row sm:gap-2 flex-shrink-0">
                         <button onClick={() => handleEditProduct(product)} className="p-1.5 sm:p-2 text-blue-600 hover:bg-blue-50 rounded">
                           <Edit size={16} />
                         </button>

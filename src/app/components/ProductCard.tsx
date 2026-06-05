@@ -41,7 +41,7 @@ export function ProductCard({ name, category, price, image, inStock, onClick }: 
         <span className="text-sm text-blue-600 font-medium uppercase tracking-wide">
           {category}
         </span>
-        <h3 className="mt-2 mb-4">{name}</h3>
+        <h3 className="mt-2 mb-4 uppercase">{name}</h3>
 
         <div className="flex items-center justify-between">
           <span className="text-gray-900">${price.toFixed(2)}</span>

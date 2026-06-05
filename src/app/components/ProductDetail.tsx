@@ -21,6 +21,7 @@ interface ProductDetailProps {
     description: string;
     inStock: boolean;
     detailedDescription?: string;
+    importantInfo?: string;
     benefits?: string[];
     flavors?: string[];
     howToUse?: string;
@@ -264,7 +265,7 @@ export function ProductDetail({ product, onClose }: ProductDetailProps) {
               <div className="flex flex-col min-h-0">
                 <div className="space-y-4 md:space-y-6 md:overflow-y-auto md:flex-1 md:max-h-[400px] pr-1 mb-4">
                   <div>
-                    <h2 className="mb-2">{product.name}</h2>
+                    <h2 className="mb-2 uppercase">{product.name}</h2>
                     <div className="flex items-center gap-2 mb-3">
                       <div className="flex items-center">
                         {[...Array(5)].map((_, i) => (
@@ -282,8 +283,15 @@ export function ProductDetail({ product, onClose }: ProductDetailProps) {
                   <div className="space-y-4">
                     <div>
                       <h3 className="mb-2">Descripción</h3>
-                      <p className="text-gray-600 text-sm leading-relaxed">{product.description}</p>
+                      <p className="whitespace-pre-line text-gray-600 text-sm leading-relaxed">{product.description}</p>
                     </div>
+
+                    {product.importantInfo && (
+                      <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+                        <h3 className="mb-1 text-amber-900">Dato importante</h3>
+                        <p className="whitespace-pre-line text-sm text-amber-800">{product.importantInfo}</p>
+                      </div>
+                    )}
 
                     {product.benefits && product.benefits.length > 0 && (
                       <div>
@@ -318,14 +326,14 @@ export function ProductDetail({ product, onClose }: ProductDetailProps) {
                     {product.howToUse && (
                       <div>
                         <h3 className="mb-2">Modo de Uso</h3>
-                        <p className="text-gray-600 text-sm">{product.howToUse}</p>
+                        <p className="whitespace-pre-line text-gray-600 text-sm">{product.howToUse}</p>
                       </div>
                     )}
 
                     {product.ingredients && (
                       <div>
                         <h3 className="mb-2">Ingredientes</h3>
-                        <p className="text-gray-600 text-sm">{product.ingredients}</p>
+                        <p className="whitespace-pre-line text-gray-600 text-sm">{product.ingredients}</p>
                       </div>
                     )}
                   </div>

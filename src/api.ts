@@ -11,6 +11,7 @@ export interface Product {
   inStock: boolean;
   draft: boolean;
   detailedDescription?: string;
+  importantInfo?: string;
   benefits?: string[];
   flavors?: string[];
   howToUse?: string;
@@ -35,6 +36,7 @@ function fromDB(row: Record<string, unknown>): Product {
     inStock: row.in_stock as boolean,
     draft: (row.draft as boolean) ?? false,
     detailedDescription: (row.detailed_description as string) ?? '',
+    importantInfo: (row.important_info as string) ?? '',
     benefits: (row.benefits as string[]) ?? [],
     flavors: (row.flavors as string[]) ?? [],
     howToUse: (row.how_to_use as string) ?? '',
@@ -57,6 +59,7 @@ function toDB(p: Omit<Product, 'id'>) {
     in_stock: p.inStock,
     draft: p.draft ?? false,
     detailed_description: p.detailedDescription ?? '',
+    important_info: p.importantInfo ?? '',
     benefits: p.benefits ?? [],
     flavors: p.flavors ?? [],
     how_to_use: p.howToUse ?? '',

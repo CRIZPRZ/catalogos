@@ -14,6 +14,7 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState('Todos');
   const [searchTerm, setSearchTerm] = useState('');
+  const [priceSort, setPriceSort] = useState<'default' | 'price-desc' | 'price-asc'>('default');
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [showAdmin, setShowAdmin] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
@@ -63,14 +64,20 @@ export default function App() {
     setCategories(fresh);
   };
 
-  const filteredProducts = products.filter((product) => {
-    if (product.draft) return false;
-    const matchesCategory = selectedCategory === 'Todos' || product.category === selectedCategory;
-    const matchesSearch =
-      product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      product.description.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesCategory && matchesSearch;
-  });
+  const filteredProducts = products
+    .filter((product) => {
+      if (product.draft) return false;
+      const matchesCategory = selectedCategory === 'Todos' || product.category === selectedCategory;
+      const matchesSearch =
+        product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        product.description.toLowerCase().includes(searchTerm.toLowerCase());
+      return matchesCategory && matchesSearch;
+    })
+    .sort((a, b) => {
+      if (priceSort === 'price-desc') return b.price - a.price;
+      if (priceSort === 'price-asc') return a.price - b.price;
+      return 0;
+    });
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -96,15 +103,26 @@ export default function App() {
           <p className="hidden sm:block text-center text-gray-600 mb-4 text-sm">
             Encuentra los mejores suplementos para tu rendimiento deportivo
           </p>
-          <div className="relative max-w-md mx-auto mt-3">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-            <input
-              type="text"
-              placeholder="Buscar productos..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-            />
+          <div className="mx-auto mt-3 flex max-w-3xl flex-col gap-3 sm:flex-row">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+              <input
+                type="text"
+                placeholder="Buscar productos..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+              />
+            </div>
+            <select
+              value={priceSort}
+              onChange={(e) => setPriceSort(e.target.value as 'default' | 'price-desc' | 'price-asc')}
+              className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 sm:w-56"
+            >
+              <option value="default">Ordenar por</option>
+              <option value="price-desc">Precio: mayor a menor</option>
+              <option value="price-asc">Precio: menor a mayor</option>
+            </select>
           </div>
         </div>
       </header>
