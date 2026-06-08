@@ -1,6 +1,5 @@
 import { useState, useCallback, useRef } from 'react';
 import ReactCrop, { type PixelCrop } from 'react-image-crop';
-import { processProductImage } from '@/lib/processProductImage';
 import { X } from 'lucide-react';
 import 'react-image-crop/dist/ReactCrop.css';
 
@@ -47,6 +46,8 @@ export function ImageCropper({ imageUrl, fileName, onCropComplete, onCancel }: I
     canvas.width = safeCrop.width;
     canvas.height = safeCrop.height;
     const ctx = canvas.getContext('2d')!;
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
     ctx.drawImage(
       image,
       safeCrop.x, safeCrop.y,
@@ -55,12 +56,22 @@ export function ImageCropper({ imageUrl, fileName, onCropComplete, onCancel }: I
       safeCrop.width, safeCrop.height,
     );
 
+    const outputType = fileName.toLowerCase().endsWith('.png') ? 'image/png' : 'image/jpeg';
+    const outputExtension = outputType === 'image/png' ? '.png' : '.jpg';
+
     const blob = await new Promise<Blob>((resolve, reject) => {
-      canvas.toBlob(b => b ? resolve(b) : reject(new Error('Canvas toBlob failed')), 'image/png');
+      canvas.toBlob(
+        b => b ? resolve(b) : reject(new Error('Canvas toBlob failed')),
+        outputType,
+        outputType === 'image/jpeg' ? 0.98 : undefined,
+      );
     });
-    const croppedFile = new File([blob], fileName.replace(/\.[^.]+$/, '') + '.png', { type: 'image/png' });
-    const finalFile = await processProductImage(croppedFile);
-    onCropComplete(finalFile);
+    const croppedFile = new File(
+      [blob],
+      fileName.replace(/\.[^.]+$/, '') + outputExtension,
+      { type: outputType },
+    );
+    onCropComplete(croppedFile);
   }, [completedCrop, fileName, onCropComplete]);
 
   return (

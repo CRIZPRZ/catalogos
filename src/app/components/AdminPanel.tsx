@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Edit, Trash2, X, Save, Upload, Crop, ZoomIn } from 'lucide-react';
+import { Plus, Edit, Trash2, X, Save, Upload, Crop, ZoomIn, GripVertical } from 'lucide-react';
 import { uploadProductImage } from '@/api';
 import { processProductImage } from '@/lib/processProductImage';
 import { ImageCropper } from './ImageCropper';
@@ -28,7 +28,7 @@ interface AdminPanelProps {
   products: Product[];
   categories: string[];
   onUpdateProducts: (products: Product[]) => void;
-  onUpdateCategories: (categories: string[]) => void;
+  onUpdateCategories: (action: { type: 'add'; name: string } | { type: 'rename'; oldName: string; newName: string } | { type: 'delete'; name: string }) => void;
   onClose: () => void;
 }
 
@@ -49,10 +49,14 @@ export function AdminPanel({ products, categories, onUpdateProducts, onUpdateCat
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [showProductForm, setShowProductForm] = useState(false);
   const [newCategory, setNewCategory] = useState('');
+  const [editingCategory, setEditingCategory] = useState<string | null>(null);
+  const [editingCategoryName, setEditingCategoryName] = useState('');
   const [uploading, setUploading] = useState(false);
   const [imageItems, setImageItems] = useState<ProductImageItem[]>([]);
   const [cropImageId, setCropImageId] = useState<string | null>(null);
   const [draggedImageId, setDraggedImageId] = useState<string | null>(null);
+  const [dragOverImageId, setDragOverImageId] = useState<string | null>(null);
+  const [dragOverPosition, setDragOverPosition] = useState<'before' | 'after' | null>(null);
   const [previewImageId, setPreviewImageId] = useState<string | null>(null);
 
   const [formData, setFormData] = useState<Partial<Product>>({
@@ -122,6 +126,10 @@ export function AdminPanel({ products, categories, onUpdateProducts, onUpdateCat
     replaceImageItems(imageItems.filter(item => item.id !== id));
     if (cropImageId === id) setCropImageId(null);
     if (draggedImageId === id) setDraggedImageId(null);
+    if (dragOverImageId === id) {
+      setDragOverImageId(null);
+      setDragOverPosition(null);
+    }
     if (previewImageId === id) setPreviewImageId(null);
   };
 
@@ -228,7 +236,7 @@ export function AdminPanel({ products, categories, onUpdateProducts, onUpdateCat
     setEditingProduct(null);
     setShowProductForm(false);
     setCropImageId(null);
-    setDraggedImageId(null);
+    clearDragState();
     setPreviewImageId(null);
   };
 
@@ -255,20 +263,63 @@ export function AdminPanel({ products, categories, onUpdateProducts, onUpdateCat
   };
 
   const handleAddCategory = () => {
-    if (newCategory.trim() && !categories.includes(newCategory.trim())) {
-      onUpdateCategories([...categories, newCategory.trim()]);
+    const trimmedCategory = newCategory.trim();
+    if (trimmedCategory && !categories.includes(trimmedCategory)) {
+      onUpdateCategories({ type: 'add', name: trimmedCategory });
       setNewCategory('');
     }
   };
 
+  const handleStartEditCategory = (category: string) => {
+    setEditingCategory(category);
+    setEditingCategoryName(category);
+  };
+
+  const handleSaveCategory = () => {
+    if (!editingCategory) return;
+
+    const trimmedCategory = editingCategoryName.trim();
+    if (!trimmedCategory) return;
+
+    if (trimmedCategory === editingCategory) {
+      setEditingCategory(null);
+      setEditingCategoryName('');
+      return;
+    }
+
+    if (categories.includes(trimmedCategory)) {
+      alert('Ya existe una categoría con ese nombre.');
+      return;
+    }
+
+    onUpdateCategories({
+      type: 'rename',
+      oldName: editingCategory,
+      newName: trimmedCategory,
+    });
+    setEditingCategory(null);
+    setEditingCategoryName('');
+  };
+
+  const handleCancelEditCategory = () => {
+    setEditingCategory(null);
+    setEditingCategoryName('');
+  };
+
   const handleDeleteCategory = (category: string) => {
     if (confirm(`¿Eliminar la categoría "${category}"? Los productos con esta categoría mantendrán su categoría actual.`)) {
-      onUpdateCategories(categories.filter(c => c !== category));
+      onUpdateCategories({ type: 'delete', name: category });
     }
   };
 
-  const moveImage = (fromId: string, toId: string) => {
-    if (fromId === toId) return;
+  const clearDragState = () => {
+    setDraggedImageId(null);
+    setDragOverImageId(null);
+    setDragOverPosition(null);
+  };
+
+  const moveImage = (fromId: string, toId: string, position: 'before' | 'after' = 'before') => {
+    if (fromId === toId && position === 'before') return;
 
     setImageItems(prev => {
       const fromIndex = prev.findIndex(item => item.id === fromId);
@@ -277,14 +328,58 @@ export function AdminPanel({ products, categories, onUpdateProducts, onUpdateCat
 
       const next = [...prev];
       const [moved] = next.splice(fromIndex, 1);
-      next.splice(toIndex, 0, moved);
+      const insertIndex = (() => {
+        const adjustedTargetIndex = fromIndex < toIndex ? toIndex - 1 : toIndex;
+        if (position === 'before') return adjustedTargetIndex;
+        return adjustedTargetIndex + 1;
+      })();
+      next.splice(insertIndex, 0, moved);
       return next;
     });
+  };
+
+  const getDropPosition = (event: { clientX: number }, element: HTMLElement) => {
+    const bounds = element.getBoundingClientRect();
+    const midpointX = bounds.left + bounds.width / 2;
+    return event.clientX < midpointX ? 'before' : 'after';
+  };
+
+  const updateDragTarget = (targetId: string, position: 'before' | 'after') => {
+    if (!draggedImageId || draggedImageId === targetId) {
+      setDragOverImageId(null);
+      setDragOverPosition(null);
+      return;
+    }
+    setDragOverImageId(targetId);
+    setDragOverPosition(position);
+  };
+
+  const handleImageDragStart = (id: string) => {
+    setDraggedImageId(id);
+    setDragOverImageId(null);
+    setDragOverPosition(null);
+  };
+
+  const handleImageDragOver = (id: string, e: React.DragEvent<HTMLDivElement>) => {
+    if (!draggedImageId) return;
+    e.preventDefault();
+    updateDragTarget(id, getDropPosition(e, e.currentTarget));
+  };
+
+  const handleImageDrop = (id: string) => {
+    if (!draggedImageId || !dragOverPosition) {
+      clearDragState();
+      return;
+    }
+    moveImage(draggedImageId, id, dragOverPosition);
+    clearDragState();
   };
 
   const handleTouchStart = (id: string, e: React.TouchEvent<HTMLDivElement>) => {
     if ((e.target as HTMLElement).closest('button, input, label')) return;
     setDraggedImageId(id);
+    setDragOverImageId(null);
+    setDragOverPosition(null);
   };
 
   const handleTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
@@ -297,15 +392,18 @@ export function AdminPanel({ products, categories, onUpdateProducts, onUpdateCat
     const dropTarget = target?.closest<HTMLElement>('[data-image-id]');
     const targetId = dropTarget?.dataset.imageId;
 
-    if (targetId && targetId !== draggedImageId) {
-      moveImage(draggedImageId, targetId);
+    if (targetId && dropTarget) {
+      updateDragTarget(targetId, getDropPosition(touch, dropTarget));
     }
 
     e.preventDefault();
   };
 
   const handleTouchEnd = () => {
-    setDraggedImageId(null);
+    if (draggedImageId && dragOverImageId && dragOverPosition) {
+      moveImage(draggedImageId, dragOverImageId, dragOverPosition);
+    }
+    clearDragState();
   };
 
   const cropTarget = cropImageId ? imageItems.find(item => item.id === cropImageId && item.kind === 'new') : null;
@@ -420,42 +518,54 @@ export function AdminPanel({ products, categories, onUpdateProducts, onUpdateCat
                         {/* Imágenes */}
                         <div>
                           <label className="block text-xs text-gray-500 mb-1">Imágenes</label>
-                          <p className="text-xs text-gray-400 mb-2">Tamaño ideal: <strong>1000×1000 px</strong> cuadrada, fondo blanco, formato JPG/PNG. La primera imagen aparece en la tarjeta. Puedes arrastrarlas para cambiar el orden.</p>
+                          <p className="text-xs text-gray-400 mb-1">Tamaño ideal: <strong>1000×1000 px</strong> cuadrada, fondo blanco, formato JPG/PNG. La primera imagen aparece en la tarjeta. Puedes arrastrarlas para cambiar el orden.</p>
+                          <p className="text-xs text-gray-500 mb-2">Puedes seleccionar y guardar mas de 4 fotos. Orden actual: {imageItems.length} imagen{imageItems.length === 1 ? '' : 'es'}.</p>
                           <div className="flex flex-wrap gap-2">
                             {imageItems.map((item, i) => (
                               <div
                                 key={item.id}
                                 data-image-id={item.id}
                                 draggable
-                                onDragStart={() => setDraggedImageId(item.id)}
-                                onDragOver={(e) => e.preventDefault()}
-                                onDrop={() => {
-                                  if (draggedImageId) {
-                                    moveImage(draggedImageId, item.id);
-                                    setDraggedImageId(null);
-                                  }
-                                }}
-                                onDragEnd={() => setDraggedImageId(null)}
+                                onDragStart={() => handleImageDragStart(item.id)}
+                                onDragOver={(e) => handleImageDragOver(item.id, e)}
+                                onDrop={() => handleImageDrop(item.id)}
+                                onDragEnd={clearDragState}
                                 onTouchStart={(e) => handleTouchStart(item.id, e)}
                                 onTouchMove={handleTouchMove}
                                 onTouchEnd={handleTouchEnd}
                                 onTouchCancel={handleTouchEnd}
                                 className={`group relative w-16 h-16 flex-shrink-0 rounded-lg border bg-white cursor-move overflow-visible ${
-                                  draggedImageId === item.id ? 'opacity-60 border-blue-400' : item.kind === 'new' ? 'border-blue-300' : 'border-gray-200'
+                                  draggedImageId === item.id
+                                    ? 'opacity-60 border-blue-400'
+                                    : dragOverImageId === item.id
+                                      ? 'border-emerald-500'
+                                      : item.kind === 'new'
+                                        ? 'border-blue-300'
+                                        : 'border-gray-200'
                                 }`}
                                 style={{ touchAction: 'none' }}
                                 title={`Imagen ${i + 1}`}
                               >
+                                {dragOverImageId === item.id && dragOverPosition === 'before' && (
+                                  <div className="absolute -left-1 top-1/2 z-20 h-12 w-1 -translate-y-1/2 rounded-full bg-emerald-500 shadow-[0_0_0_2px_rgba(255,255,255,0.9)]" />
+                                )}
+                                {dragOverImageId === item.id && dragOverPosition === 'after' && (
+                                  <div className="absolute -right-1 top-1/2 z-20 h-12 w-1 -translate-y-1/2 rounded-full bg-emerald-500 shadow-[0_0_0_2px_rgba(255,255,255,0.9)]" />
+                                )}
                                 <button
                                   type="button"
                                   onClick={() => setPreviewImageId(item.id)}
                                   className="block h-full w-full"
                                   title="Ver más grande"
+                                  draggable={false}
                                 >
-                                  <img src={item.preview} alt="" className="w-full h-full object-cover rounded-lg" />
+                                  <img src={item.preview} alt="" className="w-full h-full object-cover rounded-lg" draggable={false} />
                                 </button>
                                 <div className="absolute left-1 top-1 rounded bg-black/65 px-1 py-0.5 text-[10px] text-white">
                                   {i + 1}
+                                </div>
+                                <div className="absolute right-1 top-1 z-10 rounded bg-black/65 p-0.5 text-white" title="Arrastra para cambiar el orden">
+                                  <GripVertical size={10} />
                                 </div>
                                 <button
                                   type="button"
@@ -675,10 +785,41 @@ export function AdminPanel({ products, categories, onUpdateProducts, onUpdateCat
                 <div className="grid gap-3">
                   {categories.filter(c => c !== 'Todos').map(category => (
                     <div key={category} className="flex items-center justify-between bg-white border rounded-lg p-4">
-                      <span>{category}</span>
-                      <button onClick={() => handleDeleteCategory(category)} className="p-2 text-red-600 hover:bg-red-50 rounded">
-                        <Trash2 size={18} />
-                      </button>
+                      {editingCategory === category ? (
+                        <div className="flex flex-1 flex-col gap-3 sm:flex-row sm:items-center">
+                          <input
+                            type="text"
+                            value={editingCategoryName}
+                            onChange={(e) => setEditingCategoryName(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') handleSaveCategory();
+                              if (e.key === 'Escape') handleCancelEditCategory();
+                            }}
+                            className="w-full max-w-md px-3 py-2 border rounded-lg text-sm"
+                            autoFocus
+                          />
+                          <div className="flex items-center gap-2">
+                            <button onClick={handleSaveCategory} className="p-2 text-green-600 hover:bg-green-50 rounded" title="Guardar nombre">
+                              <Save size={18} />
+                            </button>
+                            <button onClick={handleCancelEditCategory} className="p-2 text-gray-600 hover:bg-gray-100 rounded" title="Cancelar edición">
+                              <X size={18} />
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <>
+                          <span>{category}</span>
+                          <div className="flex items-center gap-2">
+                            <button onClick={() => handleStartEditCategory(category)} className="p-2 text-blue-600 hover:bg-blue-50 rounded" title="Editar categoría">
+                              <Edit size={18} />
+                            </button>
+                            <button onClick={() => handleDeleteCategory(category)} className="p-2 text-red-600 hover:bg-red-50 rounded" title="Eliminar categoría">
+                              <Trash2 size={18} />
+                            </button>
+                          </div>
+                        </>
+                      )}
                     </div>
                   ))}
                 </div>

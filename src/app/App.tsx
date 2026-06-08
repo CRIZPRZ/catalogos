@@ -8,6 +8,11 @@ import * as api from '@/api';
 import type { Product } from '@/api';
 import { AdminLogin } from './components/AdminLogin';
 
+type CategoryUpdateAction =
+  | { type: 'add'; name: string }
+  | { type: 'rename'; oldName: string; newName: string }
+  | { type: 'delete'; name: string };
+
 export default function App() {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<string[]>(['Todos']);
@@ -52,16 +57,37 @@ export default function App() {
     setProducts(fresh);
   };
 
-  const handleUpdateCategories = async (newCategories: string[]) => {
-    if (newCategories.length > categories.length) {
-      const added = newCategories.find((c) => !categories.includes(c));
-      if (added) await api.createCategory(added);
-    } else {
-      const removed = categories.find((c) => c !== 'Todos' && !newCategories.includes(c));
-      if (removed) await api.deleteCategory(removed);
+  const handleUpdateCategories = async (action: CategoryUpdateAction) => {
+    if (action.type === 'add') {
+      await api.createCategory(action.name);
     }
-    const fresh = await api.getCategories();
-    setCategories(fresh);
+
+    if (action.type === 'rename') {
+      await api.renameCategory(action.oldName, action.newName);
+      if (selectedCategory === action.oldName) {
+        setSelectedCategory(action.newName);
+      }
+      if (selectedProduct?.category === action.oldName) {
+        setSelectedProduct({ ...selectedProduct, category: action.newName });
+      }
+    }
+
+    if (action.type === 'delete') {
+      await api.deleteCategory(action.name);
+      if (selectedCategory === action.name) {
+        setSelectedCategory('Todos');
+      }
+      if (selectedProduct?.category === action.name) {
+        setSelectedProduct({ ...selectedProduct, category: action.name });
+      }
+    }
+
+    const [freshProducts, freshCategories] = await Promise.all([
+      api.getProducts(),
+      api.getCategories(),
+    ]);
+    setProducts(freshProducts);
+    setCategories(freshCategories);
   };
 
   const filteredProducts = products

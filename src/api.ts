@@ -103,6 +103,20 @@ export async function createCategory(name: string): Promise<void> {
   if (error) throw error;
 }
 
+export async function renameCategory(oldName: string, newName: string): Promise<void> {
+  const { error: categoryError } = await supabase
+    .from('categories')
+    .update({ name: newName })
+    .eq('name', oldName);
+  if (categoryError) throw categoryError;
+
+  const { error: productsError } = await supabase
+    .from('products')
+    .update({ category: newName })
+    .eq('category', oldName);
+  if (productsError) throw productsError;
+}
+
 export async function deleteCategory(name: string): Promise<void> {
   const { error } = await supabase.from('categories').delete().eq('name', name);
   if (error) throw error;
@@ -110,7 +124,8 @@ export async function deleteCategory(name: string): Promise<void> {
 
 export async function uploadProductImage(file: File): Promise<string> {
   const ext = file.name.split('.').pop();
-  const path = `products/${Date.now()}.${ext}`;
+  const uniqueSuffix = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+  const path = `products/${uniqueSuffix}.${ext}`;
   const { error } = await supabase.storage.from('product-images').upload(path, file);
   if (error) throw error;
   const { data } = supabase.storage.from('product-images').getPublicUrl(path);
