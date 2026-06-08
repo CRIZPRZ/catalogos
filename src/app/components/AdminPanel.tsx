@@ -377,6 +377,7 @@ export function AdminPanel({ products, categories, onUpdateProducts, onUpdateCat
 
   const handleTouchStart = (id: string, e: React.TouchEvent<HTMLDivElement>) => {
     if ((e.target as HTMLElement).closest('button, input, label')) return;
+    e.preventDefault();
     setDraggedImageId(id);
     setDragOverImageId(null);
     setDragOverPosition(null);
@@ -534,6 +535,7 @@ export function AdminPanel({ products, categories, onUpdateProducts, onUpdateCat
                                 onTouchMove={handleTouchMove}
                                 onTouchEnd={handleTouchEnd}
                                 onTouchCancel={handleTouchEnd}
+                                onContextMenu={(e) => e.preventDefault()}
                                 className={`group relative w-16 h-16 flex-shrink-0 rounded-lg border bg-white cursor-move overflow-visible ${
                                   draggedImageId === item.id
                                     ? 'opacity-60 border-blue-400'
@@ -552,15 +554,16 @@ export function AdminPanel({ products, categories, onUpdateProducts, onUpdateCat
                                 {dragOverImageId === item.id && dragOverPosition === 'after' && (
                                   <div className="absolute -right-1 top-1/2 z-20 h-12 w-1 -translate-y-1/2 rounded-full bg-emerald-500 shadow-[0_0_0_2px_rgba(255,255,255,0.9)]" />
                                 )}
-                                <button
-                                  type="button"
-                                  onClick={() => setPreviewImageId(item.id)}
-                                  className="block h-full w-full"
-                                  title="Ver más grande"
-                                  draggable={false}
-                                >
-                                  <img src={item.preview} alt="" className="w-full h-full object-cover rounded-lg" draggable={false} />
-                                </button>
+                                <div className="block h-full w-full">
+                                  <img
+                                    src={item.preview}
+                                    alt=""
+                                    className="w-full h-full object-cover rounded-lg select-none"
+                                    draggable={false}
+                                    onContextMenu={(e) => e.preventDefault()}
+                                    style={{ WebkitTouchCallout: 'none' }}
+                                  />
+                                </div>
                                 <div className="absolute left-1 top-1 rounded bg-black/65 px-1 py-0.5 text-[10px] text-white">
                                   {i + 1}
                                 </div>
